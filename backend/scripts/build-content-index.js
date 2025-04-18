@@ -40,8 +40,49 @@ const funderIssueArea = JSON.parse(
 	fs.readFileSync(funderIssueAreaPath, 'utf8')
 );
 
+// added the extractor
+function extractSectionsFromBodyContent(bodyContent) {
+	const sections = {
+		overview: '',
+		ipTake: '',
+		profile: '',
+	};
+
+	if (!bodyContent) {
+		return sections;
+	}
+
+	const normalizedText = bodyContent
+		.replace(/\r\n/g, '\n')
+		.replace(/\r/g, '\n');
+
+	const overviewIndex = normalizedText.indexOf('OVERVIEW:');
+	const ipTakeIndex = normalizedText.indexOf('IP TAKE:');
+	const profileIndex = normalizedText.indexOf('PROFILE:');
+
+	if (overviewIndex !== -1) {
+		const start = overviewIndex + 'OVERVIEW:'.length;
+		const end = ipTakeIndex !== -1 ? ipTakeIndex : normalizedText.length;
+		sections.overview = normalizedText.slice(start, end).trim();
+	}
+
+	if (ipTakeIndex !== -1) {
+		const start = ipTakeIndex + 'IP TAKE:'.length;
+		const end = profileIndex !== -1 ? profileIndex : normalizedText.length;
+		sections.ipTake = normalizedText.slice(start, end).trim();
+	}
+
+	if (profileIndex !== -1) {
+		const start = profileIndex + 'PROFILE:'.length;
+		const end = normalizedText.length;
+		sections.profile = normalizedText.slice(start, end).trim();
+	}
+
+	return sections;
+}
+
 // Helper function to create documents
-function buildDocuments() {
+async function buildDocuments() {
 	const documents = [];
 	let excludedCount = 0;
 	const excludedUrls = [];
@@ -57,12 +98,47 @@ function buildDocuments() {
 			continue;
 		}
 
+		// Try to find matching crawled document
+		let overview = '';
+		let ipTake = '';
+		let profile = '';
+
+		try {
+			const response = await client.search({
+				index: 'search-ful-site-crawl',
+				size: 1,
+				query: {
+					term: {
+						url: funderUrl,
+					},
+				},
+			});
+
+			if (response.hits.hits.length > 0) {
+				const bodyContent = response.hits.hits[0]._source.body_content;
+				if (bodyContent) {
+					const sections = extractSectionsFromBodyContent(bodyContent);
+					overview = sections.overview;
+					ipTake = sections.ipTake;
+					profile = sections.profile;
+				}
+			}
+		} catch (error) {
+			console.error(
+				`Error fetching crawled content for ${funderUrl}:`,
+				error.message
+			);
+		}
+
 		documents.push({
 			funderName: funderData.funderName,
 			funderUrl: funderUrl,
 			issueAreas: Array.isArray(funderData.issueAreas)
 				? funderData.issueAreas
 				: [],
+			overview,
+			ipTake,
+			profile,
 		});
 	}
 
@@ -73,9 +149,7 @@ function buildDocuments() {
 		const logDir = path.resolve(__dirname, '../logs');
 		const logPath = path.join(logDir, 'excluded-funder-urls.json');
 
-		// Ensure the logs directory exists
 		fs.mkdirSync(logDir, { recursive: true });
-
 		fs.writeFileSync(logPath, JSON.stringify(excludedUrls, null, 2));
 		console.log(`Wrote excluded URLs to ${logPath}`);
 	}
@@ -102,12 +176,15 @@ async function createIndexAndUpload() {
 						funderName: { type: 'text' },
 						funderUrl: { type: 'keyword' },
 						issueAreas: { type: 'keyword' },
+						overview: { type: 'text' }, // <-- NEW
+						ipTake: { type: 'text' }, // <-- NEW
+						profile: { type: 'text' }, // <-- NEW
 					},
 				},
 			},
 		});
 
-		const documents = buildDocuments();
+		const documents = await buildDocuments();
 
 		console.log(`Uploading ${documents.length} documents...`);
 
