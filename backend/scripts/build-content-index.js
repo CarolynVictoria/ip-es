@@ -56,24 +56,25 @@ function extractSectionsFromBodyContent(bodyContent) {
 		.replace(/\r\n/g, '\n')
 		.replace(/\r/g, '\n');
 
-	const overviewIndex = normalizedText.indexOf('OVERVIEW:');
-	const ipTakeIndex = normalizedText.indexOf('IP TAKE:');
-	const profileIndex = normalizedText.indexOf('PROFILE:');
+	// Always search for the plain marker without colon
+	const overviewIndex = normalizedText.indexOf('OVERVIEW');
+	const ipTakeIndex = normalizedText.indexOf('IP TAKE');
+	const profileIndex = normalizedText.indexOf('PROFILE');
 
 	if (overviewIndex !== -1) {
-		const start = overviewIndex + 'OVERVIEW:'.length;
+		const start = overviewIndex + 'OVERVIEW'.length;
 		const end = ipTakeIndex !== -1 ? ipTakeIndex : normalizedText.length;
 		sections.overview = normalizedText.slice(start, end).trim();
 	}
 
 	if (ipTakeIndex !== -1) {
-		const start = ipTakeIndex + 'IP TAKE:'.length;
+		const start = ipTakeIndex + 'IP TAKE'.length;
 		const end = profileIndex !== -1 ? profileIndex : normalizedText.length;
 		sections.ipTake = normalizedText.slice(start, end).trim();
 	}
 
 	if (profileIndex !== -1) {
-		const start = profileIndex + 'PROFILE:'.length;
+		const start = profileIndex + 'PROFILE'.length;
 		const end = normalizedText.length;
 		sections.profile = normalizedText.slice(start, end).trim();
 	}
