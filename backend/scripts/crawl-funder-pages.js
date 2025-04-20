@@ -10,7 +10,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import fetch from 'node-fetch';
-import { JSDOM } from 'jsdom';
+import { JSDOM, VirtualConsole } from 'jsdom';
 
 // Setup __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -43,17 +43,41 @@ const funderMap = JSON.parse(
 	)
 );
 
+// --- Helper to make URL absolute ---
+function makeAbsoluteUrl(funderUrl) {
+	const trimmed = funderUrl.trim();
+	if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+		return trimmed; // already absolute
+	}
+	if (trimmed.startsWith('/')) {
+		return `https://www.staging24.insidephilanthropy.com${trimmed}`;
+	}
+	log(`⚠️ Unexpected funderUrl format: "${funderUrl}"`);
+	return null;
+}
+
 // --- Crawl function ---
 async function crawlFunderPages() {
 	log('🚀 Starting funder pages crawl...');
 
 	const results = [];
+	const totalFunders = Object.keys(funderMap).length; // Get the total number of funders
+
+	let currentIndex = 0; // Variable to track the current funder being crawled
 
 	for (const funderUrl in funderMap) {
 		const issueAreas = funderMap[funderUrl];
-		const url = `https://www.staging24.insidephilanthropy.com${funderUrl}`;
+		const url = makeAbsoluteUrl(funderUrl);
 
-		log(`🌐 Fetching: ${url}`);
+		if (!url) {
+			log(`⚠️ Skipping invalid URL: ${funderUrl}`);
+			continue;
+		}
+
+		currentIndex++; // Increment for each funder
+
+		// Print the progress for each funder fetched
+		log(`🌐 Fetching (${currentIndex} / ${totalFunders}): ${url}`);
 
 		try {
 			const response = await fetch(url);
@@ -66,21 +90,40 @@ async function crawlFunderPages() {
 			}
 
 			const html = await response.text();
-			const dom = new JSDOM(html);
+			const virtualConsole = new VirtualConsole();
+			virtualConsole.sendTo(console, { omitJSDOMErrors: true });
+
+			const dom = new JSDOM(html, { virtualConsole });
 			const document = dom.window.document;
 
+			// Extract sections
 			const overview = extractSection(document, 'OVERVIEW');
 			const ipTake = extractSection(document, 'IP TAKE');
 			const profile = extractSection(document, 'PROFILE');
 
-			results.push({
-				funderUrl,
-				issueAreas,
-				overview,
-				ipTake,
-				profile,
-				crawledAt: new Date().toISOString(),
-			});
+			// Check if any sections are empty
+			if (!overview && !ipTake && !profile) {
+				// If all sections are empty, put everything into 'PROFILE'
+				const fullContent = document.body.textContent.trim();
+				results.push({
+					funderUrl,
+					issueAreas,
+					overview: '', // Blank because it’s not found
+					ipTake: '', // Blank because it’s not found
+					profile: fullContent, // Entire content goes here
+					crawledAt: new Date().toISOString(),
+				});
+			} else {
+				// Otherwise, save the regular sections as normal
+				results.push({
+					funderUrl,
+					issueAreas,
+					overview,
+					ipTake,
+					profile,
+					crawledAt: new Date().toISOString(),
+				});
+			}
 		} catch (err) {
 			log(`❌ Error fetching ${url}: ${err.message}`);
 		}
@@ -96,24 +139,49 @@ async function crawlFunderPages() {
 
 // --- Helper function ---
 function extractSection(document, headingText) {
-	const headings = [...document.querySelectorAll('h2, h3, h4')];
-	for (const heading of headings) {
-		if (
-			heading.textContent
-				.trim()
-				.toUpperCase()
-				.startsWith(headingText.toUpperCase())
-		) {
-			let content = '';
-			let next = heading.nextElementSibling;
-			while (next && !['H2', 'H3', 'H4'].includes(next.tagName)) {
-				content += next.textContent.trim() + '\n';
-				next = next.nextElementSibling;
+	const elements = [...document.querySelectorAll('body *')];
+
+	for (const el of elements) {
+		// Clean the text content
+		const text = el.textContent.trim();
+
+		// Check if the element's text matches the heading we are looking for
+		if (text.toUpperCase().startsWith(headingText.toUpperCase())) {
+			// Extract the next content immediately after the heading
+			// Strategy: check the current element's text after removing the heading marker
+
+			// Remove the headingText label from the text
+			const content = text
+				.replace(new RegExp(`^${headingText}:?\\s*`, 'i'), '')
+				.trim();
+
+			if (content.length > 0) {
+				// Case 1: the content is embedded in the same element
+				return content;
+			} else {
+				// Case 2: the content is in the next sibling elements
+				let next = el.nextElementSibling;
+				let collected = '';
+
+				while (next && !isAnotherHeading(next)) {
+					collected += next.textContent.trim() + '\n';
+					next = next.nextElementSibling;
+				}
+
+				return collected.trim();
 			}
-			return content.trim();
 		}
 	}
-	return null;
+
+	return '';
+}
+
+// Helper to detect if an element is another heading marker
+function isAnotherHeading(el) {
+	if (!el) return false;
+	const text = el.textContent.trim();
+	const headings = ['OVERVIEW', 'IP TAKE', 'PROFILE'];
+	return headings.some((h) => text.toUpperCase().startsWith(h));
 }
 
 // --- Execute ---

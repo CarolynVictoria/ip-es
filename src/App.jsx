@@ -11,7 +11,7 @@ function App() {
 
 		setLoading(true);
 		const data = await fetchSearchResults(query);
-		setResults(data?.hits || []);
+		setResults(data?.results || []); // <-- your backend returns { results: [...] }
 		setLoading(false);
 	};
 
@@ -39,18 +39,49 @@ function App() {
 
 			{!loading && results.length === 0 && query && <p>No results found.</p>}
 
-			<ul className='space-y-4'>
-				{results.map((hit) => (
-					<li key={hit._id} className='p-4 border rounded bg-white shadow'>
-						<h2 className='text-lg font-semibold'>{hit._source.title}</h2>
-						{hit._source.body_content && (
-							<p className='text-gray-600 mt-2 line-clamp-3'>
-								{hit._source.body_content.slice(0, 200)}...
-							</p>
-						)}
-					</li>
-				))}
-			</ul>
+			{results.length > 0 && (
+				<ul className='space-y-4'>
+					{results.map((hit) => (
+						<li key={hit.id} className='p-4 border rounded bg-white shadow'>
+							<h2 className='text-lg font-semibold'>{hit.funderName}</h2>
+
+							{hit.ipTake && (
+								<p className='text-gray-700 mt-2'>
+									{hit.ipTake.slice(0, 200)}...
+								</p>
+							)}
+
+							{hit.overview && (
+								<p className='text-gray-500 mt-2 italic'>
+									{hit.overview.slice(0, 200)}...
+								</p>
+							)}
+
+							{hit.issueAreas && hit.issueAreas.length > 0 && (
+								<div className='mt-2'>
+									<span className='text-xs font-medium text-gray-500'>
+										Issue Areas:{' '}
+									</span>
+									{hit.issueAreas.join(', ')}
+								</div>
+							)}
+
+							{hit.funderUrl && (
+								<div className='mt-2'>
+									<a
+										href={hit.funderUrl}
+										className='text-blue-600 underline text-sm'
+										target='_blank'
+										rel='noopener noreferrer'
+									>
+										View Profile
+									</a>
+								</div>
+							)}
+						</li>
+					))}
+				</ul>
+			)}
 		</div>
 	);
 }

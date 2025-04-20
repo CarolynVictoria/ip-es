@@ -11,14 +11,8 @@
  *      1. Crawl landing pages → landing-pages-foundation-list.json
  *      2. Clean funder URLs → landing-pages.foundation-list.cleaned.json
  *      3. Build funder ➔ issue area map → funder-issuearea-map.json
- *      4. Build content index and upload to Elasticsearch → funders-structured
- *
- * Usage:
- *  $ node backend/scripts/rebuild-funders.js
- *
- * Prerequisites:
- *  - Ensure .env file is configured.
- *  - Ensure backend/scripts/ has all the required scripts present.
+ *      4. Crawl funder profile pages → funder-details-raw.json
+ *      5. Build content index and upload to Elasticsearch → funders-structured
  */
 
 import fs from 'fs';
@@ -90,10 +84,16 @@ async function rebuild() {
 			stdio: 'inherit',
 		});
 
-		console.log('4️⃣ Building content index and uploading to Elasticsearch...');
+		console.log('4️⃣ Crawling funder profile pages...');
+		execSync('node backend/scripts/crawl-funder-pages.js', {
+			stdio: 'inherit',
+		});
+
+		console.log('5️⃣ Building content index and uploading to Elasticsearch...');
 		execSync('node backend/scripts/build-content-index.js', {
 			stdio: 'inherit',
 		});
+
 
 		console.log('✅ Rebuild complete.');
 	} catch (error) {

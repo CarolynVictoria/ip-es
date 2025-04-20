@@ -22,23 +22,14 @@ async function runSearchQuery(query, filters) {
 			index: 'funders-structured',
 			size: 10,
 			query: {
-				bool: {
-					must: [
-						{
-							multi_match: {
-								query,
-								fields: ['funderName^3', 'ipTake', 'overview', 'profile'],
-								type: 'best_fields',
-								fuzziness: 'AUTO',
-							},
-						},
-					],
-					filter: [],
+				match_phrase_prefix: {
+					funderName: {
+						query: query,
+						slop: 2,
+					},
 				},
 			},
 		};
-
-		// Later: can insert filters into esQuery.query.bool.filter here
 
 		const { hits } = await client.search(esQuery);
 
