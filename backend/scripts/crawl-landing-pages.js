@@ -100,7 +100,7 @@ async function crawlLandingPages() {
 			const funders = [...foundationList.querySelectorAll('h3 a')]
 				.map((a) => ({
 					funderName: a.textContent.trim(),
-					funderUrl: a.href,
+					funderUrl: a.getAttribute('href'),
 				}))
 				.filter((f) => f.funderName && f.funderUrl);
 

@@ -57,6 +57,7 @@ function makeAbsoluteUrl(funderUrl) {
 }
 
 // --- Crawl function ---
+// --- Crawl function ---
 async function crawlFunderPages() {
 	log('🚀 Starting funder pages crawl...');
 
@@ -67,6 +68,22 @@ async function crawlFunderPages() {
 
 	for (const funderUrl in funderMap) {
 		const issueAreas = funderMap[funderUrl];
+
+		// --- SKIP unwanted URLs before processing ---
+		// ONLY process URLs under /find-a-grant/ and exclude /find-a-grant-places/
+		// ALSO exclude specific unwanted landing pages
+		if (
+			funderUrl.includes('/find-a-grant-places/') ||
+			funderUrl.includes('/find-a-grant/major-donors') ||
+			funderUrl.includes('/find-a-grant/jewish-funders') ||
+			funderUrl.includes('/find-a-grant/tech-philanthropists') ||
+			funderUrl.includes('/find-a-grant/glitzy')
+		) {
+			log(`⚠️ Skipping funder path: ${funderUrl}`);
+			continue;
+		}
+
+		// Make the URL absolute only after validation
 		const url = makeAbsoluteUrl(funderUrl);
 
 		if (!url) {
@@ -97,13 +114,12 @@ async function crawlFunderPages() {
 			const document = dom.window.document;
 
 			// Extract sections
-			const overview = extractSection(document, 'OVERVIEW');
-			const ipTake = extractSection(document, 'IP TAKE');
-			const profile = extractSection(document, 'PROFILE');
+			let overview = extractSection(document, 'OVERVIEW');
+			let ipTake = extractSection(document, 'IP TAKE');
+			let profile = extractSection(document, 'PROFILE');
 
-			// Check if any sections are empty
+			// If all sections are missing, put everything into 'PROFILE'
 			if (!overview && !ipTake && !profile) {
-				// If all sections are empty, put everything into 'PROFILE'
 				const fullContent = document.body.textContent.trim();
 				results.push({
 					funderUrl,
@@ -147,33 +163,27 @@ function extractSection(document, headingText) {
 
 		// Check if the element's text matches the heading we are looking for
 		if (text.toUpperCase().startsWith(headingText.toUpperCase())) {
-			// Extract the next content immediately after the heading
-			// Strategy: check the current element's text after removing the heading marker
-
-			// Remove the headingText label from the text
+			// Extract the content immediately after the heading
+			// Remove the headingText label (e.g. "OVERVIEW: ", "IP TAKE:", etc.)
 			const content = text
-				.replace(new RegExp(`^${headingText}:?\\s*`, 'i'), '')
+				.replace(new RegExp(`^${headingText}:?\\s*`, 'i'), '') // Remove "OVERVIEW:", "IP TAKE:", etc.
 				.trim();
 
-			if (content.length > 0) {
-				// Case 1: the content is embedded in the same element
-				return content;
-			} else {
-				// Case 2: the content is in the next sibling elements
-				let next = el.nextElementSibling;
-				let collected = '';
+			let collectedContent = content.length > 0 ? content : '';
 
-				while (next && !isAnotherHeading(next)) {
-					collected += next.textContent.trim() + '\n';
-					next = next.nextElementSibling;
-				}
-
-				return collected.trim();
+			// Case 2: the content is in the next sibling elements
+			let next = el.nextElementSibling;
+			while (next && !isAnotherHeading(next)) {
+				// Append the content of each following element
+				collectedContent += next.textContent.trim() + '\n';
+				next = next.nextElementSibling;
 			}
+
+			return collectedContent.trim();
 		}
 	}
 
-	return '';
+	return ''; // Return empty string if no section found
 }
 
 // Helper to detect if an element is another heading marker
