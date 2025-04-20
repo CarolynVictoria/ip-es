@@ -10,6 +10,7 @@ export default defineConfig({
 		},
 	},
 	server: {
+		open:	true,
 		proxy: {
 			'/api': {
 				target: 'http://localhost:5500', // ✅ matches BACKEND_PORT

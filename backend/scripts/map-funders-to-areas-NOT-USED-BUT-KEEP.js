@@ -1,4 +1,13 @@
 // backend/scripts/map-funders-to-areas.js
+// File: backend/scripts/map-funders-to-areas.js
+//
+// Purpose: 
+// Build a reverse map from funder URL paths to one or more Area slugs (like "arts", "climate").
+// Useful for associating funders with topic or location areas based on their appearance in landing pages.
+//
+// Status: 
+// Optional. This script is not used in the current main ingestion flow, but may be helpful for future enrichment.
+
 import { Client } from '@elastic/elasticsearch';
 import dotenv from 'dotenv';
 import fs from 'fs';

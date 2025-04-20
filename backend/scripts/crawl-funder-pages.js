@@ -1,4 +1,8 @@
 // backend/scripts/crawl-funder-pages.js
+// This script reads funder URLs from funder-issuearea-map.json,
+// crawls each live funder page on the staging site,
+// extracts the OVERVIEW, IP TAKE, and PROFILE sections,
+// and saves the structured results to funder-details-raw.json for later processing.
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';

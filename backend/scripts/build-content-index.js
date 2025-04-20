@@ -1,4 +1,9 @@
 // backend/scripts/build-content-index.js
+// This script reads cleaned funder-to-IssueArea mappings from funder-issuearea-map.json,
+// fetches full body content for each funder from the crawled content index (search-ful-site-crawl),
+// extracts Overview, IP Take, and Profile sections,
+// and builds a new structured index 'funders-structured' in Elasticsearch.
+// It skips invalid or irrelevant URLs and logs them separately.
 
 import fs from 'fs';
 import path from 'path';
@@ -82,6 +87,35 @@ function extractSectionsFromBodyContent(bodyContent) {
 	return sections;
 }
 
+// Helper function to fix urls with redirects
+function normalizeFunderUrl(funderUrl) {
+	if (!funderUrl) return funderUrl;
+
+	try {
+		const urlObj = new URL(funderUrl);
+
+		// If already contains /find-a-grant/ in path, do nothing
+		if (urlObj.pathname.startsWith('/find-a-grant/')) {
+			return funderUrl;
+		}
+
+		// Otherwise, insert /find-a-grant/ before the current path
+		let correctedPath =
+			'/find-a-grant' +
+			(urlObj.pathname.startsWith('/') ? '' : '/') +
+			urlObj.pathname;
+
+		// Normalize double slashes if any
+		correctedPath = correctedPath.replace(/\/{2,}/g, '/');
+
+		// Rebuild the URL
+		return `${urlObj.origin}${correctedPath}`;
+	} catch (err) {
+		console.error(`Error normalizing funder URL: ${funderUrl}`);
+		return funderUrl; // fail safe
+	}
+}
+
 // Helper function to create documents
 async function buildDocuments() {
 	const documents = [];
@@ -133,7 +167,7 @@ async function buildDocuments() {
 
 		documents.push({
 			funderName: funderData.funderName,
-			funderUrl: funderUrl,
+			funderUrl: normalizeFunderUrl(funderUrl),
 			issueAreas: Array.isArray(funderData.issueAreas)
 				? funderData.issueAreas
 				: [],

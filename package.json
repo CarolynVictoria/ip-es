@@ -12,7 +12,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
-		"dev:server": "node  --watch src/pages/elasticsearch-production-ready/server/index.js",
+		"dev:server": "node  --watch backend/server/index.js",
 		"dev:full": "concurrently \"vite\" \"npm run dev:server\"",
 		"build": "vite build",
 		"lint": "eslint .",

@@ -1,4 +1,13 @@
 // backend/scripts/transform-and-index-funder.js
+// File: backend/scripts/transform-and-index-funder.js
+//
+// Purpose:
+// Reads documents from 'search-ful-site-crawl' and builds a structured funder index ('ip-structured-funders').
+// Extracts OVERRIDE / IP TAKE / PROFILE sections from crawled body_content.
+//
+// Status:
+// NOT USED in current production pipeline. Previously used for direct crawl-based funder indexing.
+
 import { Client } from '@elastic/elasticsearch';
 import dotenv from 'dotenv';
 import fs from 'fs';

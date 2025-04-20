@@ -1,4 +1,7 @@
 // File: backend/scripts/clean-funder-urls.js
+// This script reads landing-pages.foundation-list.json, cleans funder URLs
+// (resolving Google redirect links to their final URLs), and writes the result
+// to landing-pages.foundation-list.cleaned.json for downstream processing.
 
 import fs from 'fs';
 import path from 'path';
@@ -7,7 +10,7 @@ import { URL } from 'url';
 const inputPath = path.resolve(
 	'backend',
 	'data',
-	'landing-pages.foundation-list.json'
+	'landing-pages-foundation-list.json'
 );
 const outputPath = path.resolve(
 	'backend',

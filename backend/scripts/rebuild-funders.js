@@ -21,21 +21,27 @@
  *  - Ensure backend/scripts/ has all the required scripts present.
  */
 
-import dotenv from 'dotenv';
-import path from 'path';
-dotenv.config({ path: path.resolve('backend/.env') });
-
-import { execSync } from 'child_process';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+import { execSync } from 'child_process';
 import { Client } from '@elastic/elasticsearch';
 
-// Setup Elasticsearch client
+// --- Setup __dirname ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// --- Load environment variables (before anything else) ---
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+// --- Setup Elasticsearch client ---
 const client = new Client({
 	cloud: { id: process.env.ELASTICSEARCH_CLOUD_ID },
 	auth: { apiKey: process.env.ELASTICSEARCH_API_KEY },
 });
 
-// Define paths to delete
+// --- Config ---
 const dataFiles = [
 	'backend/data/landing-pages-foundation-list.json',
 	'backend/data/landing-pages.foundation-list.cleaned.json',
@@ -43,10 +49,9 @@ const dataFiles = [
 	'backend/data/funder-details-raw.json',
 	'backend/data/seed-urls.json',
 ];
-
-// Define index to delete
 const esIndex = 'funders-structured';
 
+// --- Rebuild function ---
 async function rebuild() {
 	try {
 		console.log('🔵 Deleting old data files if they exist...');
@@ -97,5 +102,5 @@ async function rebuild() {
 	}
 }
 
-// --- Start ---
+// --- Start the rebuild ---
 rebuild();

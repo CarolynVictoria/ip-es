@@ -7,15 +7,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-console.log(
-	'[DEBUG] ELASTICSEARCH_CLOUD_ID:',
-	process.env.ELASTICSEARCH_CLOUD_ID
-);
-console.log(
-	'[DEBUG] ELASTICSEARCH_API_KEY:',
-	process.env.ELASTICSEARCH_API_KEY
-);
-
 const client = new Client({
 	cloud: {
 		id: process.env.ELASTICSEARCH_CLOUD_ID,
@@ -25,23 +16,45 @@ const client = new Client({
 	},
 });
 
-async function runSearchQuery(query, filters = {}) {
+async function runSearchQuery(query, filters) {
 	try {
-		const response = await client.search({
-			index: process.env.ELASTICSEARCH_INDEX,
+		const esQuery = {
+			index: 'funders-structured',
+			size: 10,
 			query: {
-				multi_match: {
-					query,
-					type: 'bool_prefix',
-					fields: ['title', 'title._2gram', 'title._3gram', 'body_content'],
+				bool: {
+					must: [
+						{
+							multi_match: {
+								query,
+								fields: ['funderName^3', 'ipTake', 'overview', 'profile'],
+								type: 'best_fields',
+								fuzziness: 'AUTO',
+							},
+						},
+					],
+					filter: [],
 				},
 			},
-		});
+		};
 
-		return response.hits;
+		// Later: can insert filters into esQuery.query.bool.filter here
+
+		const { hits } = await client.search(esQuery);
+
+		return {
+			results: hits.hits.map((hit) => ({
+				id: hit._id,
+				funderName: hit._source.funderName,
+				funderUrl: hit._source.funderUrl,
+				ipTake: hit._source.ipTake,
+				overview: hit._source.overview,
+				issueAreas: hit._source.issueAreas,
+			})),
+		};
 	} catch (error) {
-		console.error('Elasticsearch query error:', error);
-		return { hits: [] };
+		console.error('Error in runSearchQuery:', error);
+		throw error;
 	}
 }
 
