@@ -3,19 +3,18 @@
  * Purpose:
  * - Crawls all Issue Area landing pages from Inside Philanthropy (staging environment).
  * - Extracts the list of funders (funder name and funder URL) appearing on each page.
+ * - Follows redirects for each funder link.
  * - Associates each funder with its corresponding Issue Area.
+ * - Consolidates funders landing at the same final URL.
  * - Outputs a clean JSON file for further processing.
- *
- * Assumptions:
- * - All funder URLs on the landing pages are properly formed and include the "/find-a-grant/" path as needed.
- * - The script does not attempt to follow or correct funder URLs — it trusts the landing page HTML as the source of truth.
  *
  * Output:
  * - backend/data/landing-pages-foundation-list.json
  *
  * Notes:
- * - If any landing page lacks a <div class="foundation-list">, a warning is logged but the script continues.
- * - Crawling respects HTTP redirects at the page level but does not follow funder links individually.
+ * - Crawling respects HTTP redirects and validates final pages.
+ * - No URL fabrication. Only live final URLs are saved.
+ * - Fetching is batched for speed (controlled concurrency).
  */
 
 import { fileURLToPath } from 'url';
@@ -23,7 +22,7 @@ import { dirname } from 'path';
 import path from 'path';
 import fs from 'fs';
 import fetch from 'node-fetch';
-import { JSDOM } from 'jsdom';
+import { JSDOM, VirtualConsole } from 'jsdom';
 import dotenv from 'dotenv';
 
 // --- Setup __dirname correctly ---
@@ -54,65 +53,142 @@ const issueAreaMap = JSON.parse(
 	fs.readFileSync(path.resolve(__dirname, 'data', 'issueAreaMap.json'), 'utf-8')
 );
 
+// --- Helper to make URL absolute ---
+function makeAbsoluteUrl(funderUrl) {
+	const trimmed = funderUrl.trim();
+	if (trimmed.startsWith('http://')) {
+		return trimmed.replace('http://', 'https://');
+	}
+	if (trimmed.startsWith('https://')) {
+		return trimmed;
+	}
+	if (trimmed.startsWith('/')) {
+		return `https://www.staging24.insidephilanthropy.com${trimmed}`;
+	}
+	log(`⚠️ Unexpected funderUrl format: "${funderUrl}"`);
+	return null;
+}
+
 // --- Crawl function ---
 async function crawlLandingPages() {
 	log('🚀 Starting landing page crawl (foundation list only)...');
 
-	const foundationResults = [];
+	const funderMap = {}; // Map: final resolved URL -> { funderName, issueAreas }
 
 	for (const relativePath in issueAreaMap) {
 		const issueArea = issueAreaMap[relativePath];
-		const url = `https://www.staging24.insidephilanthropy.com/${relativePath}`;
+		const landingPageUrl = `https://www.staging24.insidephilanthropy.com/${relativePath}`;
 
-		log(`🌐 Fetching: ${url}`);
+		log(`🌐 Fetching landing page: ${landingPageUrl}`);
 
 		try {
-			const response = await fetch(url);
-
+			const response = await fetch(landingPageUrl);
 			if (!response.ok) {
 				log(
-					`❌ Failed to fetch ${url}: ${response.status} ${response.statusText}`
+					`❌ Failed to fetch ${landingPageUrl}: ${response.status} ${response.statusText}`
 				);
 				continue;
 			}
 
 			const html = await response.text();
-			const dom = new JSDOM(html);
 
-			// Suppress jsdom stylesheet parsing errors (clean up console)
-			dom.window.addEventListener('error', (event) => {
+			const virtualConsole = new VirtualConsole();
+			virtualConsole.on('error', (error) => {
+				// Suppress "Could not parse CSS stylesheet" errors
 				if (
-					event.error &&
-					event.error.message.includes('Could not parse CSS stylesheet')
+					error &&
+					error.message &&
+					error.message.includes('Could not parse CSS stylesheet')
 				) {
-					event.preventDefault();
+					return;
 				}
+				console.error(error);
 			});
+
+			const dom = new JSDOM(html, { virtualConsole });
 
 			const document = dom.window.document;
 			const foundationList = document.querySelector('.foundation-list');
 
 			if (!foundationList) {
-				log(`⚠️ No .foundation-list found on ${url}`);
+				log(`⚠️ No .foundation-list found on ${landingPageUrl}`);
 				continue;
 			}
 
-			const funders = [...foundationList.querySelectorAll('h3 a')]
-				.map((a) => ({
-					funderName: a.textContent.trim(),
-					funderUrl: a.getAttribute('href'),
-				}))
-				.filter((f) => f.funderName && f.funderUrl);
+			const funderElements = [...foundationList.querySelectorAll('h3 a')];
 
-			foundationResults.push({
-				issueArea,
-				pageUrl: url,
-				funders,
-			});
+			// --- Batch fetch funder URLs ---
+			const batchSize = 10;
+			for (let i = 0; i < funderElements.length; i += batchSize) {
+				const batch = funderElements.slice(i, i + batchSize);
+
+				const batchPromises = batch.map(async (a) => {
+					const funderName = a.textContent.trim();
+					const rawHref = a.getAttribute('href');
+
+					if (!funderName || !rawHref) return;
+
+					// Skip unwanted paths
+					if (
+						rawHref.includes('/find-a-grant-places/') ||
+						rawHref.includes('/find-a-grant/major-donors') ||
+						rawHref.includes('/find-a-grant/jewish-funders') ||
+						rawHref.includes('/find-a-grant/tech-philanthropists') ||
+						rawHref.includes('/find-a-grant/glitzy-giving-donors')
+					) {
+						return;
+					}
+
+					const absoluteUrl = makeAbsoluteUrl(rawHref);
+					if (!absoluteUrl) return;
+
+					try {
+						const funderResponse = await fetch(absoluteUrl, {
+							redirect: 'follow',
+						});
+
+						if (!funderResponse.ok) {
+							log(
+								`❌ Funder URL fetch failed: ${absoluteUrl} => ${funderResponse.status} ${funderResponse.statusText}`
+							);
+							return;
+						}
+
+						let finalPath = funderResponse.url.replace(
+							'https://www.staging24.insidephilanthropy.com',
+							''
+						);
+						if (!finalPath.startsWith('/')) {
+							finalPath = '/' + finalPath;
+						}
+
+						// Merge funders landing at the same final URL
+						if (!funderMap[finalPath]) {
+							funderMap[finalPath] = {
+								funderName: funderName,
+								funderUrl: finalPath,
+								issueAreas: [issueArea],
+							};
+						} else {
+							if (!funderMap[finalPath].issueAreas.includes(issueArea)) {
+								funderMap[finalPath].issueAreas.push(issueArea);
+							}
+						}
+					} catch (err) {
+						log(`❌ Error fetching funder URL ${absoluteUrl}: ${err.message}`);
+					}
+				});
+
+				await Promise.allSettled(batchPromises); // Wait for this batch before moving to next
+			}
+			// --- End batch fetching funders ---
 		} catch (err) {
-			log(`❌ Error processing ${url}: ${err.message}`);
+			log(`❌ Error processing landing page ${landingPageUrl}: ${err.message}`);
 		}
 	}
+
+	// Convert funderMap to array for output
+	const foundationResults = Object.values(funderMap);
 
 	// Ensure /backend/data folder exists
 	fs.mkdirSync(path.resolve(__dirname, '../data'), { recursive: true });

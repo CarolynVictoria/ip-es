@@ -22,9 +22,7 @@ const cloudId = process.env.ELASTICSEARCH_CLOUD_ID;
 const apiKey = process.env.ELASTICSEARCH_API_KEY;
 
 if (!cloudId || !apiKey) {
-	console.error(
-		'Missing ELASTICSEARCH_CLOUD_ID or ELASTICSEARCH_API_KEY in .env'
-	);
+	console.error('Missing ELASTICSEARCH_CLOUD_ID or ELASTICSEARCH_API_KEY in .env');
 	process.exit(1);
 }
 
@@ -37,84 +35,12 @@ const client = new Client({
 const indexName = 'funders-structured';
 
 // Load funder to issue area map
-const funderIssueAreaPath = path.resolve(
+// replaced with new code cvm 04-21-2024
+const funderDetailsPath = path.resolve(
 	__dirname,
-	'../data/funder-issuearea-map.json'
+	'../data/funder-details-raw.json'
 );
-const funderIssueArea = JSON.parse(
-	fs.readFileSync(funderIssueAreaPath, 'utf8')
-);
-
-// added the extractor
-function extractSectionsFromBodyContent(bodyContent) {
-	const sections = {
-		overview: '',
-		ipTake: '',
-		profile: '',
-	};
-
-	if (!bodyContent) {
-		return sections;
-	}
-
-	const normalizedText = bodyContent
-		.replace(/\r\n/g, '\n')
-		.replace(/\r/g, '\n');
-
-	// Always search for the plain marker without colon
-	const overviewIndex = normalizedText.indexOf('OVERVIEW');
-	const ipTakeIndex = normalizedText.indexOf('IP TAKE');
-	const profileIndex = normalizedText.indexOf('PROFILE');
-
-	if (overviewIndex !== -1) {
-		const start = overviewIndex + 'OVERVIEW'.length;
-		const end = ipTakeIndex !== -1 ? ipTakeIndex : normalizedText.length;
-		sections.overview = normalizedText.slice(start, end).trim();
-	}
-
-	if (ipTakeIndex !== -1) {
-		const start = ipTakeIndex + 'IP TAKE'.length;
-		const end = profileIndex !== -1 ? profileIndex : normalizedText.length;
-		sections.ipTake = normalizedText.slice(start, end).trim();
-	}
-
-	if (profileIndex !== -1) {
-		const start = profileIndex + 'PROFILE'.length;
-		const end = normalizedText.length;
-		sections.profile = normalizedText.slice(start, end).trim();
-	}
-
-	return sections;
-}
-
-// Helper function to fix urls with redirects
-function normalizeFunderUrl(funderUrl) {
-	if (!funderUrl) return funderUrl;
-
-	try {
-		const urlObj = new URL(funderUrl);
-
-		// If already contains /find-a-grant/ in path, do nothing
-		if (urlObj.pathname.startsWith('/find-a-grant/')) {
-			return funderUrl;
-		}
-
-		// Otherwise, insert /find-a-grant/ before the current path
-		let correctedPath =
-			'/find-a-grant' +
-			(urlObj.pathname.startsWith('/') ? '' : '/') +
-			urlObj.pathname;
-
-		// Normalize double slashes if any
-		correctedPath = correctedPath.replace(/\/{2,}/g, '/');
-
-		// Rebuild the URL
-		return `${urlObj.origin}${correctedPath}`;
-	} catch (err) {
-		console.error(`Error normalizing funder URL: ${funderUrl}`);
-		return funderUrl; // fail safe
-	}
-}
+const funderDetails = JSON.parse(fs.readFileSync(funderDetailsPath, 'utf8'));
 
 // Helper function to create documents
 async function buildDocuments() {
@@ -122,54 +48,31 @@ async function buildDocuments() {
 	let excludedCount = 0;
 	const excludedUrls = [];
 
-	for (const [funderUrl, funderData] of Object.entries(funderIssueArea)) {
+	// replace with new code cvm 04-21-2024
+	for (const record of funderDetails) {
 		// Skip bad URLs
 		if (
-			funderUrl.includes('/find-a-grant-places/') ||
-			funderUrl.includes('google.com/url?')
+			record.funderUrl.includes('/find-a-grant-places/') ||
+			record.funderUrl.includes('google.com/url?')
 		) {
 			excludedCount++;
-			excludedUrls.push(funderUrl);
+			excludedUrls.push(record.funderUrl);
 			continue;
 		}
 
-		// Try to find matching crawled document
-		let overview = '';
-		let ipTake = '';
-		let profile = '';
+		const overview = record.overview || '';
+		const ipTake = record.ipTake || '';
+		const profile = record.profile || '';
 
-		try {
-			const response = await client.search({
-				index: 'search-ful-site-crawl',
-				size: 1,
-				query: {
-					term: {
-						url: funderUrl,
-					},
-				},
-			});
-
-			if (response.hits.hits.length > 0) {
-				const bodyContent = response.hits.hits[0]._source.body_content;
-				if (bodyContent) {
-					const sections = extractSectionsFromBodyContent(bodyContent);
-					overview = sections.overview;
-					ipTake = sections.ipTake;
-					profile = sections.profile;
-				}
-			}
-		} catch (error) {
-			console.error(
-				`Error fetching crawled content for ${funderUrl}:`,
-				error.message
-			);
+		if (!overview && !ipTake && !profile) {
+			console.warn(`Warning: All content fields missing for ${record.funderUrl}`);
 		}
 
 		documents.push({
-			funderName: funderData.funderName,
-			funderUrl: normalizeFunderUrl(funderUrl),
-			issueAreas: Array.isArray(funderData.issueAreas)
-				? funderData.issueAreas
+			funderName: record.issueAreas?.funderName || '',
+			funderUrl: record.funderUrl,
+			issueAreas: Array.isArray(record.issueAreas?.issueAreas)
+				? record.issueAreas.issueAreas
 				: [],
 			overview,
 			ipTake,
@@ -211,15 +114,20 @@ async function createIndexAndUpload() {
 						funderName: { type: 'text' },
 						funderUrl: { type: 'keyword' },
 						issueAreas: { type: 'keyword' },
-						overview: { type: 'text' }, // <-- NEW
-						ipTake: { type: 'text' }, // <-- NEW
-						profile: { type: 'text' }, // <-- NEW
+						overview: { type: 'text' },
+						ipTake: { type: 'text' },
+						profile: { type: 'text' },
 					},
 				},
 			},
 		});
 
 		const documents = await buildDocuments();
+
+		if (documents.length === 0) {
+			console.error('No documents to upload. Aborting.');
+			return;
+		}
 
 		console.log(`Uploading ${documents.length} documents...`);
 

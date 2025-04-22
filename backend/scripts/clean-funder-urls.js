@@ -21,12 +21,12 @@ const outputPath = path.resolve(
 function cleanFunderUrl(url) {
 	if (!url) return url;
 	try {
-		const parsed = new URL(url);
+		const parsed = new URL(url, 'https://www.staging24.insidephilanthropy.com'); // Support relative URLs too
 		if (parsed.hostname === 'www.google.com' && parsed.pathname === '/url') {
 			const trueUrl = parsed.searchParams.get('q');
 			if (trueUrl) return trueUrl;
 		}
-		return url;
+		return parsed.pathname + parsed.search; // Always keep relative format
 	} catch (err) {
 		console.error(`Invalid URL skipped: ${url}`);
 		return url;
@@ -41,12 +41,10 @@ function cleanLandingPages() {
 
 	const data = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
 
-	const cleanedData = data.map((page) => ({
-		...page,
-		funders: page.funders.map((funder) => ({
-			...funder,
-			funderUrl: cleanFunderUrl(funder.funderUrl),
-		})),
+	// --- Update: We now map funders directly (flat list, not pages with funders)
+	const cleanedData = data.map((funder) => ({
+		...funder,
+		funderUrl: cleanFunderUrl(funder.funderUrl),
 	}));
 
 	fs.writeFileSync(outputPath, JSON.stringify(cleanedData, null, 2), 'utf8');

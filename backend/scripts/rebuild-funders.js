@@ -37,11 +37,11 @@ const client = new Client({
 
 // --- Config ---
 const dataFiles = [
-	'backend/data/landing-pages-foundation-list.json',
-	'backend/data/landing-pages.foundation-list.cleaned.json',
-	'backend/data/funder-issuearea-map.json',
-	'backend/data/funder-details-raw.json',
-	'backend/data/seed-urls.json',
+	path.resolve(__dirname, '../data/landing-pages-foundation-list.json'),
+	path.resolve(__dirname, '../data/landing-pages.foundation-list.cleaned.json'),
+	path.resolve(__dirname, '../data/funder-issuearea-map.json'),
+	path.resolve(__dirname, '../data/funder-details-raw.json'),
+	path.resolve(__dirname, '../data/seed-urls.json'),
 ];
 const esIndex = 'funders-structured';
 
@@ -52,9 +52,9 @@ async function rebuild() {
 		for (const filePath of dataFiles) {
 			if (fs.existsSync(filePath)) {
 				fs.unlinkSync(filePath);
-				console.log(`🗑️ Deleted ${filePath}`);
+				console.log(`🗑️ Deleted ${path.basename(filePath)}`);
 			} else {
-				console.log(`ℹ️ File not found (ok): ${filePath}`);
+				console.log(`ℹ️ File not found (ok): ${path.basename(filePath)}`);
 			}
 		}
 
@@ -75,9 +75,7 @@ async function rebuild() {
 		});
 
 		console.log('2️⃣ Cleaning funder URLs...');
-		execSync('node backend/scripts/clean-funder-urls.js', {
-			stdio: 'inherit',
-		});
+		execSync('node backend/scripts/clean-funder-urls.js', { stdio: 'inherit' });
 
 		console.log('3️⃣ Building funder ➔ issue area map...');
 		execSync('node backend/scripts/build-funder-issueareas-map.js', {
@@ -93,7 +91,6 @@ async function rebuild() {
 		execSync('node backend/scripts/build-content-index.js', {
 			stdio: 'inherit',
 		});
-
 
 		console.log('✅ Rebuild complete.');
 	} catch (error) {

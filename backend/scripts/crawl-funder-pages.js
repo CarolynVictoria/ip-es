@@ -1,201 +1,140 @@
 // backend/scripts/crawl-funder-pages.js
-// This script reads funder URLs from funder-issuearea-map.json,
-// crawls each live funder page on the staging site,
-// extracts the OVERVIEW, IP TAKE, and PROFILE sections,
-// and saves the structured results to funder-details-raw.json for later processing.
+// This script reads funder-issuearea-map.json,
+// fetches full body content for each funder profile page from search-ful-site-crawl,
+// extracts Overview, IP Take, and Profile sections,
+// and saves structured funder details to funder-details-raw.json.
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import dotenv from 'dotenv';
-import path from 'path';
 import fs from 'fs';
-import fetch from 'node-fetch';
-import { JSDOM, VirtualConsole } from 'jsdom';
+import path from 'path';
+import { Client } from '@elastic/elasticsearch';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
-// Setup __dirname
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-// Load environment variables
-dotenv.config({ path: '../.env' });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// --- Logging setup ---
-const timestamp = new Date()
-	.toISOString()
-	.replace(/[-:]/g, '')
-	.replace(/\..+/, '');
-const logDir = path.resolve('backend', 'logs');
-const logPath = path.join(logDir, `crawl-funders-${timestamp}.log`);
-fs.mkdirSync(logDir, { recursive: true });
-const logStream = fs.createWriteStream(logPath, { flags: 'a' });
+const cloudId = process.env.ELASTICSEARCH_CLOUD_ID;
+const apiKey = process.env.ELASTICSEARCH_API_KEY;
 
-function log(message) {
-	const full = `[${new Date().toISOString()}] ${message}`;
-	console.log(full);
-	logStream.write(full + '\n');
+if (!cloudId || !apiKey) {
+	console.error(
+		'Missing ELASTICSEARCH_CLOUD_ID or ELASTICSEARCH_API_KEY in .env'
+	);
+	process.exit(1);
 }
 
-// --- Load the funder-to-issue-area association map ---
-const funderMap = JSON.parse(
-	fs.readFileSync(
-		path.resolve(__dirname, '../data/funder-issuearea-map.json'),
-		'utf-8'
-	)
+const client = new Client({
+	cloud: { id: cloudId },
+	auth: { apiKey },
+});
+
+const funderMapPath = path.resolve(
+	__dirname,
+	'../data/funder-issuearea-map.json'
 );
+const outputPath = path.resolve(__dirname, '../data/funder-details-raw.json');
 
-// --- Helper to make URL absolute ---
-function makeAbsoluteUrl(funderUrl) {
-	const trimmed = funderUrl.trim();
-	if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-		return trimmed; // already absolute
+const funderMap = JSON.parse(fs.readFileSync(funderMapPath, 'utf8'));
+
+// updated to strictly match only OVERVIEW, IP TAKE, and PROFILE section names (upper or capitalized)
+// updated to fallback to profile if OVERVIEW not found (must be all uppercase)
+// updated to remove colons and spaces at the beginning of the content
+// updated to remove new lines and carriage returns
+// updated to adjust regex for profile default section
+// updated: stricter matching of section headers, fallback if "OVERVIEW" missing
+function extractSectionsFromBodyContent(bodyContent) {
+	const sections = {
+		overview: '',
+		ipTake: '',
+		profile: '',
+	};
+
+	if (!bodyContent) return sections;
+
+	// Normalize line endings
+	const normalizedText = bodyContent
+		.replace(/\r\n/g, '\n')
+		.replace(/\r/g, '\n');
+
+	// Step 1: Strictly check if "OVERVIEW" exists (case sensitive)
+	if (!normalizedText.includes('OVERVIEW')) {
+		// If "OVERVIEW" not found, assign entire content to profile
+		sections.profile = normalizedText.trim();
+		return sections;
 	}
-	if (trimmed.startsWith('/')) {
-		return `https://www.staging24.insidephilanthropy.com${trimmed}`;
-	}
-	log(`⚠️ Unexpected funderUrl format: "${funderUrl}"`);
-	return null;
+
+	// Step 2: Extract sections based on strict labels
+	const overviewMatch = normalizedText.match(
+		/OVERVIEW[:\s]*(.*?)(?=\s*(?:IP TAKE|PROFILE)|$)/s
+	);
+	const ipTakeMatch = normalizedText.match(
+		/IP TAKE[:\s]*(.*?)(?=\s*(?:PROFILE)|$)/s
+	);
+	const profileMatch = normalizedText.match(/PROFILE[:\s]*(.*)/s);
+
+	if (overviewMatch) sections.overview = overviewMatch[1].trim();
+	if (ipTakeMatch) sections.ipTake = ipTakeMatch[1].trim();
+	if (profileMatch) sections.profile = profileMatch[1].trim();
+
+	return sections;
 }
 
-// --- Crawl function ---
-// --- Crawl function ---
+export { extractSectionsFromBodyContent };
+
 async function crawlFunderPages() {
-	log('🚀 Starting funder pages crawl...');
+	const funderDetails = [];
 
-	const results = [];
-	const totalFunders = Object.keys(funderMap).length; // Get the total number of funders
-
-	let currentIndex = 0; // Variable to track the current funder being crawled
-
-	for (const funderUrl in funderMap) {
-		const issueAreas = funderMap[funderUrl];
-
-		// --- SKIP unwanted URLs before processing ---
-		// ONLY process URLs under /find-a-grant/ and exclude /find-a-grant-places/
-		// ALSO exclude specific unwanted landing pages
+	for (const [funderUrl, funderData] of Object.entries(funderMap)) {
+		// Skip bad URLs
 		if (
 			funderUrl.includes('/find-a-grant-places/') ||
-			funderUrl.includes('/find-a-grant/major-donors') ||
-			funderUrl.includes('/find-a-grant/jewish-funders') ||
-			funderUrl.includes('/find-a-grant/tech-philanthropists') ||
-			funderUrl.includes('/find-a-grant/glitzy')
+			funderUrl.includes('google.com/url?')
 		) {
-			log(`⚠️ Skipping funder path: ${funderUrl}`);
 			continue;
 		}
-
-		// Make the URL absolute only after validation
-		const url = makeAbsoluteUrl(funderUrl);
-
-		if (!url) {
-			log(`⚠️ Skipping invalid URL: ${funderUrl}`);
-			continue;
-		}
-
-		currentIndex++; // Increment for each funder
-
-		// Print the progress for each funder fetched
-		log(`🌐 Fetching (${currentIndex} / ${totalFunders}): ${url}`);
+		//cvm added 04-21-2025
+		const fullFunderUrl = `https://www.staging24.insidephilanthropy.com${funderUrl}`;
 
 		try {
-			const response = await fetch(url);
+			//cvm added 04-21-2025
+			const response = await client.search({
+				index: 'search-ful-site-crawl',
+				size: 1,
+				query: {
+					term: {
+						url: fullFunderUrl,
+					},
+				},
+			});
 
-			if (!response.ok) {
-				log(
-					`❌ Failed to fetch ${url}: ${response.status} ${response.statusText}`
-				);
-				continue;
-			}
+			if (response.hits.hits.length > 0) {
+				const source = response.hits.hits[0]._source;
+				const bodyContent = source.body_content || '';
+				const sections = extractSectionsFromBodyContent(bodyContent);
 
-			const html = await response.text();
-			const virtualConsole = new VirtualConsole();
-			virtualConsole.sendTo(console, { omitJSDOMErrors: true });
-
-			const dom = new JSDOM(html, { virtualConsole });
-			const document = dom.window.document;
-
-			// Extract sections
-			let overview = extractSection(document, 'OVERVIEW');
-			let ipTake = extractSection(document, 'IP TAKE');
-			let profile = extractSection(document, 'PROFILE');
-
-			// If all sections are missing, put everything into 'PROFILE'
-			if (!overview && !ipTake && !profile) {
-				const fullContent = document.body.textContent.trim();
-				results.push({
+				funderDetails.push({
 					funderUrl,
-					issueAreas,
-					overview: '', // Blank because it’s not found
-					ipTake: '', // Blank because it’s not found
-					profile: fullContent, // Entire content goes here
+					issueAreas: {
+						funderName: funderData.funderName,
+						issueAreas: funderData.issueAreas || [],
+					},
+					overview: sections.overview,
+					ipTake: sections.ipTake,
+					profile: sections.profile,
 					crawledAt: new Date().toISOString(),
 				});
 			} else {
-				// Otherwise, save the regular sections as normal
-				results.push({
-					funderUrl,
-					issueAreas,
-					overview,
-					ipTake,
-					profile,
-					crawledAt: new Date().toISOString(),
-				});
+				console.warn(`No crawled page found for ${funderUrl}`);
 			}
-		} catch (err) {
-			log(`❌ Error fetching ${url}: ${err.message}`);
+		} catch (error) {
+			console.error(`Error fetching content for ${funderUrl}:`, error.message);
 		}
 	}
 
-	// Save results
-	const outputPath = path.resolve(__dirname, '../data/funder-details-raw.json');
-	fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
-
-	log(`✅ Crawl complete. Pages saved to: ${outputPath}`);
-	logStream.end();
+	fs.writeFileSync(outputPath, JSON.stringify(funderDetails, null, 2));
+	console.log(`Crawl complete. Pages saved to: ${outputPath}`);
 }
 
-// --- Helper function ---
-function extractSection(document, headingText) {
-	const elements = [...document.querySelectorAll('body *')];
-
-	for (const el of elements) {
-		// Clean the text content
-		const text = el.textContent.trim();
-
-		// Check if the element's text matches the heading we are looking for
-		if (text.toUpperCase().startsWith(headingText.toUpperCase())) {
-			// Extract the content immediately after the heading
-			// Remove the headingText label (e.g. "OVERVIEW: ", "IP TAKE:", etc.)
-			const content = text
-				.replace(new RegExp(`^${headingText}:?\\s*`, 'i'), '') // Remove "OVERVIEW:", "IP TAKE:", etc.
-				.trim();
-
-			let collectedContent = content.length > 0 ? content : '';
-
-			// Case 2: the content is in the next sibling elements
-			let next = el.nextElementSibling;
-			while (next && !isAnotherHeading(next)) {
-				// Append the content of each following element
-				collectedContent += next.textContent.trim() + '\n';
-				next = next.nextElementSibling;
-			}
-
-			return collectedContent.trim();
-		}
-	}
-
-	return ''; // Return empty string if no section found
-}
-
-// Helper to detect if an element is another heading marker
-function isAnotherHeading(el) {
-	if (!el) return false;
-	const text = el.textContent.trim();
-	const headings = ['OVERVIEW', 'IP TAKE', 'PROFILE'];
-	return headings.some((h) => text.toUpperCase().startsWith(h));
-}
-
-// --- Execute ---
-crawlFunderPages().catch((err) => {
-	log(`❌ Fatal error: ${err.message}`);
-	logStream.end();
-});
+crawlFunderPages();
