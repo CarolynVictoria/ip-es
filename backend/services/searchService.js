@@ -20,7 +20,7 @@ async function runSearchQuery(query) {
 	try {
 		const esQuery = {
 			index: 'funders-grant-finder', // <-- updated index name
-			size: 10,
+			size: 100,
 			query: {
 				bool: {
 					should: [
