@@ -2,7 +2,7 @@
 // This script reads cleaned funder-to-IssueArea mappings from funder-issuearea-map.json,
 // fetches full body content for each funder from the crawled content index (search-ful-site-crawl),
 // extracts Overview, IP Take, and Profile sections,
-// and builds a new structured index 'funders-structured' in Elasticsearch.
+// and builds a new structured index 'funders-grant-finder' in Elasticsearch.
 // It skips invalid or irrelevant URLs and logs them separately.
 
 import fs from 'fs';
@@ -32,7 +32,7 @@ const client = new Client({
 });
 
 // Define index name
-const indexName = 'funders-structured';
+const indexName = 'funders-grant-finder';
 
 // Load funder to issue area map
 // replaced with new code cvm 04-21-2024

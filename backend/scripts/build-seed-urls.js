@@ -6,12 +6,12 @@
  * Purpose:
  *  - Safely rebuilds the full funders dataset after source corrections.
  *  - Deletes previous outputs if they exist.
- *  - Deletes Elasticsearch index 'funders-structured' if it exists.
+ *  - Deletes Elasticsearch index 'funders-grant-finder' if it exists.
  *  - Runs the necessary scripts in order:
  *      1. Crawl landing pages → landing-pages-foundation-list.json
  *      2. Clean funder URLs → landing-pages.foundation-list.cleaned.json
  *      3. Build funder ➔ issue area map → funder-issuearea-map.json
- *      4. Build content index and upload to Elasticsearch → funders-structured
+ *      4. Build content index and upload to Elasticsearch → funders-grant-finder
  *
  * Usage:
  *  $ node backend/scripts/rebuild-funders.js
@@ -45,7 +45,7 @@ const dataFiles = [
 ];
 
 // Define index to delete
-const esIndex = 'funders-structured';
+const esIndex = 'funders-grant-finder';
 
 async function rebuild() {
 	try {

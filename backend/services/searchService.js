@@ -16,17 +16,44 @@ const client = new Client({
 	},
 });
 
-async function runSearchQuery(query, filters) {
+async function runSearchQuery(query) {
 	try {
 		const esQuery = {
-			index: 'funders-structured',
+			index: 'funders-grant-finder', // <-- updated index name
 			size: 10,
 			query: {
-				match_phrase_prefix: {
-					funderName: {
-						query: query,
-						slop: 2,
-					},
+				bool: {
+					should: [
+						{
+							multi_match: {
+								query: query,
+								type: 'bool_prefix',
+								fields: [
+									'funderName.autocomplete',
+									'ipTake.autocomplete',
+									'overview.autocomplete',
+									'profile.autocomplete',
+								],
+								boost: 2,
+							},
+						},
+						{
+							multi_match: {
+								query: query,
+								type: 'phrase',
+								fields: ['funderName', 'ipTake', 'overview', 'profile'],
+								boost: 3,
+							},
+						},
+						{
+							multi_match: {
+								query: query,
+								fields: ['funderName', 'ipTake', 'overview', 'profile'],
+								boost: 1,
+							},
+						},
+					],
+					minimum_should_match: 1,
 				},
 			},
 		};
@@ -44,7 +71,7 @@ async function runSearchQuery(query, filters) {
 			})),
 		};
 	} catch (error) {
-		console.error('Error in runSearchQuery:', error);
+		console.error('Error in runSearchQuery:', error.meta?.body?.error || error);
 		throw error;
 	}
 }
