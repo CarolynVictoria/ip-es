@@ -5,22 +5,25 @@ import FunderList from './components/FunderList';
 
 function App() {
 	const [query, setQuery] = useState('');
-	const [results, setResults] = useState([]);
+	const [primaryResults, setPrimaryResults] = useState([]);
+	const [secondaryResults, setSecondaryResults] = useState([]);
 	const [loading, setLoading] = useState(false);
 
 	const handleSearch = async (e) => {
-		if (e) e.preventDefault(); // prevent form submit reload
+		if (e) e.preventDefault();
 		if (!query.trim()) return;
 
 		setLoading(true);
 		const data = await fetchSearchResults(query);
-		setResults(data?.results || []);
+		setPrimaryResults(data?.primaryResults || []);
+		setSecondaryResults(data?.secondaryResults || []);
 		setLoading(false);
 	};
 
 	const handleClear = () => {
 		setQuery('');
-		setResults([]);
+		setPrimaryResults([]);
+		setSecondaryResults([]);
 		setLoading(false);
 	};
 
@@ -37,13 +40,33 @@ function App() {
 
 			{loading && <p>Loading...</p>}
 
-			{!loading && results.length > 0 && (
-				<p className='mb-4 text-gray-700'>{results.length} matches found</p>
+			{!loading &&
+				(primaryResults.length > 0 || secondaryResults.length > 0) && (
+					<p className='mb-4 text-gray-700'>
+						{primaryResults.length + secondaryResults.length} matches found
+					</p>
+				)}
+
+			{!loading &&
+				primaryResults.length === 0 &&
+				secondaryResults.length === 0 &&
+				query && <p>No results found.</p>}
+
+			{primaryResults.length > 0 && (
+				<div className='mb-8'>
+					<h2 className='text-xl font-bold mb-2'>
+						Funders Matching Your Search
+					</h2>
+					<FunderList results={primaryResults} />
+				</div>
 			)}
 
-			{!loading && results.length === 0 && query && <p>No results found.</p>}
-
-			{results.length > 0 && <FunderList results={results} />}
+			{secondaryResults.length > 0 && (
+				<div className='mb-8'>
+					<h2 className='text-xl font-bold mb-2'>Other Mentions</h2>
+					<FunderList results={secondaryResults} />
+				</div>
+			)}
 		</div>
 	);
 }

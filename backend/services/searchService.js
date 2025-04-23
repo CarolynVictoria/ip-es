@@ -19,8 +19,8 @@ const client = new Client({
 async function runSearchQuery(query) {
 	try {
 		const esQuery = {
-			index: 'funders-grant-finder', // <-- updated index name
-			size: 100,
+			index: 'funders-grant-finder',
+			size: 200,
 			query: {
 				bool: {
 					should: [
@@ -60,16 +60,38 @@ async function runSearchQuery(query) {
 
 		const { hits } = await client.search(esQuery);
 
-		return {
-			results: hits.hits.map((hit) => ({
-				id: hit._id,
-				funderName: hit._source.funderName,
-				funderUrl: hit._source.funderUrl,
-				ipTake: hit._source.ipTake,
-				overview: hit._source.overview,
-				issueAreas: hit._source.issueAreas,
-			})),
-		};
+		const primaryResults = [];
+		const secondaryResults = [];
+
+		for (const hit of hits.hits) {
+			const source = hit._source;
+			const funderNameLower = (source.funderName || '').toLowerCase();
+			const queryLower = query.toLowerCase();
+
+			// Determine if the query is in the funderName field (primary)
+			if (funderNameLower.includes(queryLower)) {
+				primaryResults.push({
+					id: hit._id,
+					funderName: source.funderName,
+					funderUrl: source.funderUrl,
+					ipTake: source.ipTake,
+					overview: source.overview,
+					issueAreas: source.issueAreas,
+				});
+			} else {
+				// Otherwise it goes into secondary matches
+				secondaryResults.push({
+					id: hit._id,
+					funderName: source.funderName,
+					funderUrl: source.funderUrl,
+					ipTake: source.ipTake,
+					overview: source.overview,
+					issueAreas: source.issueAreas,
+				});
+			}
+		}
+
+		return { primaryResults, secondaryResults };
 	} catch (error) {
 		console.error('Error in runSearchQuery:', error.meta?.body?.error || error);
 		throw error;

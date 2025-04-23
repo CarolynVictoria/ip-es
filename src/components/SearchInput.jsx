@@ -1,7 +1,8 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
 function SearchInput({ query, setQuery, handleSearch, handleClear }) {
 	const inputRef = useRef(null);
+	const debounceTimeoutRef = useRef(null);
 
 	const handleClearAndFocus = () => {
 		handleClear();
@@ -9,6 +10,19 @@ function SearchInput({ query, setQuery, handleSearch, handleClear }) {
 			inputRef.current.focus();
 		}
 	};
+
+	useEffect(() => {
+		// Skip debounce if query is empty
+		if (!query.trim()) return;
+
+		// Debounce the handleSearch
+		debounceTimeoutRef.current = setTimeout(() => {
+			handleSearch();
+		}, 300); // 300ms delay
+
+		// Clear timeout if query changes quickly
+		return () => clearTimeout(debounceTimeoutRef.current);
+	}, [query]);
 
 	return (
 		<form onSubmit={handleSearch} className='flex gap-2 mb-6'>
