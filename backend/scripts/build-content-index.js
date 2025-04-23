@@ -22,7 +22,9 @@ const cloudId = process.env.ELASTICSEARCH_CLOUD_ID;
 const apiKey = process.env.ELASTICSEARCH_API_KEY;
 
 if (!cloudId || !apiKey) {
-	console.error('Missing ELASTICSEARCH_CLOUD_ID or ELASTICSEARCH_API_KEY in .env');
+	console.error(
+		'Missing ELASTICSEARCH_CLOUD_ID or ELASTICSEARCH_API_KEY in .env'
+	);
 	process.exit(1);
 }
 
@@ -65,7 +67,9 @@ async function buildDocuments() {
 		const profile = record.profile || '';
 
 		if (!overview && !ipTake && !profile) {
-			console.warn(`Warning: All content fields missing for ${record.funderUrl}`);
+			console.warn(
+				`Warning: All content fields missing for ${record.funderUrl}`
+			);
 		}
 
 		documents.push({
@@ -109,14 +113,68 @@ async function createIndexAndUpload() {
 		await client.indices.create({
 			index: indexName,
 			body: {
+				settings: {
+					analysis: {
+						analyzer: {
+							autocomplete_analyzer: {
+								tokenizer: 'autocomplete_tokenizer',
+								filter: ['lowercase'],
+							},
+						},
+						tokenizer: {
+							autocomplete_tokenizer: {
+								type: 'edge_ngram',
+								min_gram: 2,
+								max_gram: 15,
+								token_chars: ['letter', 'digit'],
+							},
+						},
+					},
+				},
 				mappings: {
 					properties: {
-						funderName: { type: 'text' },
+						funderName: {
+							type: 'text',
+							fields: {
+								autocomplete: {
+									type: 'text',
+									analyzer: 'autocomplete_analyzer',
+									search_analyzer: 'standard',
+								},
+							},
+						},
 						funderUrl: { type: 'keyword' },
 						issueAreas: { type: 'keyword' },
-						overview: { type: 'text' },
-						ipTake: { type: 'text' },
-						profile: { type: 'text' },
+						overview: {
+							type: 'text',
+							fields: {
+								autocomplete: {
+									type: 'text',
+									analyzer: 'autocomplete_analyzer',
+									search_analyzer: 'standard',
+								},
+							},
+						},
+						ipTake: {
+							type: 'text',
+							fields: {
+								autocomplete: {
+									type: 'text',
+									analyzer: 'autocomplete_analyzer',
+									search_analyzer: 'standard',
+								},
+							},
+						},
+						profile: {
+							type: 'text',
+							fields: {
+								autocomplete: {
+									type: 'text',
+									analyzer: 'autocomplete_analyzer',
+									search_analyzer: 'standard',
+								},
+							},
+						},
 					},
 				},
 			},
