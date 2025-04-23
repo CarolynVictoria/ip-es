@@ -76,16 +76,17 @@ async function runSearchQuery(query) {
 					funderUrl: source.funderUrl,
 					ipTake: source.ipTake,
 					overview: source.overview,
+					profile: source.profile, // ✅ Add this
 					issueAreas: source.issueAreas,
 				});
 			} else {
-				// Otherwise it goes into secondary matches
 				secondaryResults.push({
 					id: hit._id,
 					funderName: source.funderName,
 					funderUrl: source.funderUrl,
 					ipTake: source.ipTake,
 					overview: source.overview,
+					profile: source.profile, // ✅ Add this
 					issueAreas: source.issueAreas,
 				});
 			}
