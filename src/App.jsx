@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { fetchSearchResults } from './clientApi';
 import SearchInput from './components/SearchInput';
 import FunderList from './components/FunderList';
+import FilterPanel from './components/FilterPanel';
 
 function App() {
 	const [query, setQuery] = useState('');
+	const [selectedIssueAreas, setSelectedIssueAreas] = useState([]);
+	const [selectedLocations, setSelectedLocations] = useState([]);
 	const [primaryResults, setPrimaryResults] = useState([]);
 	const [secondaryResults, setSecondaryResults] = useState([]);
 	const [loading, setLoading] = useState(false);
@@ -14,7 +17,10 @@ function App() {
 		if (!query.trim()) return;
 
 		setLoading(true);
-		const data = await fetchSearchResults(query);
+		const data = await fetchSearchResults(query, {
+			issueAreas: selectedIssueAreas,
+			locations: selectedLocations,
+		});
 		setPrimaryResults(data?.primaryResults || []);
 		setSecondaryResults(data?.secondaryResults || []);
 		setLoading(false);
@@ -27,46 +33,73 @@ function App() {
 		setLoading(false);
 	};
 
+	const handleIssueAreaChange = (areas) => {
+		setSelectedIssueAreas(areas);
+	};
+
+	const handleLocationChange = (locations) => {
+		setSelectedLocations(locations);
+	};
+
 	return (
 		<div className='min-h-screen p-6 bg-gray-50'>
-			<h1 className='text-2xl font-bold mb-4'>IP Search</h1>
+			<h1 className='text-2xl font-bold mb-6'>
+				Grant Finder Search
+			</h1>
 
-			<SearchInput
-				query={query}
-				setQuery={setQuery}
-				handleSearch={handleSearch}
-				handleClear={handleClear}
-			/>
-
-			{loading && <p>Loading...</p>}
-
-			{!loading &&
-				(primaryResults.length > 0 || secondaryResults.length > 0) && (
-					<p className='mb-4 text-gray-700'>
-						{primaryResults.length + secondaryResults.length} matches found
-					</p>
-				)}
-
-			{!loading &&
-				primaryResults.length === 0 &&
-				secondaryResults.length === 0 &&
-				query && <p>No results found.</p>}
-
-			{primaryResults.length > 0 && (
-				<div className='mb-8'>
-					<h2 className='text-xl font-bold mb-2'>
-						Funders Matching Your Search
-					</h2>
-					<FunderList results={primaryResults} />
+			<div className='flex flex-col md:flex-row gap-6'>
+				{/* Left Sidebar */}
+				<div className='md:w-1/4 w-full max-h-screen overflow-y-auto p-2"'>
+					<FilterPanel
+						selectedIssueAreas={selectedIssueAreas}
+						onIssueAreaChange={handleIssueAreaChange}
+						selectedLocations={selectedLocations}
+						onLocationChange={handleLocationChange}
+					/>
 				</div>
-			)}
 
-			{secondaryResults.length > 0 && (
-				<div className='mb-8'>
-					<h2 className='text-xl font-bold mb-2'>Other Mentions</h2>
-					<FunderList results={secondaryResults} />
+				{/* Main Content */}
+				<div className='md:w-3/4 w-full'>
+					{/* Search Input */}
+					<SearchInput
+						query={query}
+						setQuery={setQuery}
+						handleSearch={handleSearch}
+						handleClear={handleClear}
+					/>
+
+					{/* Results */}
+					{loading && <p>Loading...</p>}
+
+					{!loading &&
+						(primaryResults.length > 0 || secondaryResults.length > 0) && (
+							<p className='mb-4 text-gray-700'>
+								{primaryResults.length + secondaryResults.length} matches found
+							</p>
+						)}
+
+					{!loading &&
+						primaryResults.length === 0 &&
+						secondaryResults.length === 0 &&
+						query && <p>No results found.</p>}
+
+					{primaryResults.length > 0 && (
+						<div className='mb-8'>
+							<h2 className='text-xl font-bold mb-2'>
+								Funders Matching Your Search
+							</h2>
+							<FunderList results={primaryResults} />
+						</div>
+					)}
+
+					{secondaryResults.length > 0 && (
+						<div className='mb-8'>
+							<h2 className='text-xl font-bold mb-2'>Other Mentions</h2>
+							<FunderList results={secondaryResults} />
+						</div>
+					)}
 				</div>
-			)}
+			</div>
 		</div>
 	);
 }

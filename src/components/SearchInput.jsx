@@ -31,7 +31,7 @@ function SearchInput({ query, setQuery, handleSearch, handleClear }) {
 				type='text'
 				value={query}
 				onChange={(e) => setQuery(e.target.value)}
-				placeholder='Type a keyword...'
+				placeholder='Start typing...'
 				className='flex-1 border border-gray-300 px-4 py-2 rounded shadow-sm'
 			/>
 			<button
