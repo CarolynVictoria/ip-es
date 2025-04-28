@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-export const DEFAULT_EXPANDABLE_LIMIT = 500;
+export const DEFAULT_EXPANDABLE_LIMIT = 600;
 
 function ExpandableText({
 	text = '',
@@ -13,7 +13,7 @@ function ExpandableText({
 	if (!text) return null;
 
 	const getTruncatedText = (text, limit) => {
-		if (text.length <= limit) return text;
+		if (text.length <= limit) return null;
 
 		const sentenceEndings = ['.', '!', '?'];
 		let index = limit;
@@ -26,19 +26,18 @@ function ExpandableText({
 				sentenceEndings.includes(char) &&
 				(nextChar === ' ' || nextChar === '\n' || nextChar === '')
 			) {
-				// Found the end of a sentence
 				return text.slice(0, index + 1).trim();
 			}
 
 			index++;
 		}
 
-		// Fallback: no sentence end found, truncate hard
-		return text.slice(0, limit).trim();
+		return text.slice(0, limit).trim(); // fallback
 	};
 
-	const isLong = text.length > limit;
-	const displayed = expanded ? text : getTruncatedText(text, limit);
+	const preview = getTruncatedText(text, limit);
+	const isLong = !!preview;
+	const displayed = expanded || !isLong ? text : preview;
 
 	return (
 		<div className={className}>

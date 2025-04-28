@@ -16,44 +16,67 @@ const client = new Client({
 	},
 });
 
-async function runSearchQuery(query) {
+async function runSearchQuery(rawQuery) {
 	try {
+		const cleaned = rawQuery.trim();
+		const isQuoted = /^".*"$/.test(cleaned);
+		const normalizedQuery = cleaned.replace(/^"|"$/g, '');
+
+		// Split on + or comma to form compound subqueries
+		const subqueries = normalizedQuery
+			.split(/\+|,/)
+			.map((s) => s.trim())
+			.filter(Boolean);
+
+		const mustClauses = subqueries.map((term) => ({
+			bool: {
+				should: [
+					{
+						multi_match: {
+							query: term,
+							type: 'phrase',
+							fields: ['funderName^5', 'ipTake^3', 'overview^3', 'profile^3'],
+							boost: 10,
+						},
+					},
+					{
+						multi_match: {
+							query: term,
+							type: 'best_fields',
+							operator: 'and',
+							fields: ['funderName^4', 'ipTake^2', 'overview^2', 'profile^2'],
+							boost: 5,
+						},
+					},
+					{
+						multi_match: {
+							query: term,
+							type: 'bool_prefix',
+							fields: [
+								'funderName.autocomplete',
+								'ipTake.autocomplete',
+								'overview.autocomplete',
+								'profile.autocomplete',
+							],
+							boost: 2,
+						},
+					},
+				],
+				minimum_should_match: 1,
+			},
+		}));
+
 		const esQuery = {
 			index: 'funders-grant-finder',
 			size: 200,
 			query: {
 				bool: {
-					should: [
-						{
-							multi_match: {
-								query: query,
-								type: 'bool_prefix',
-								fields: [
-									'funderName.autocomplete',
-									'ipTake.autocomplete',
-									'overview.autocomplete',
-									'profile.autocomplete',
-								],
-								boost: 2,
-							},
-						},
-						{
-							multi_match: {
-								query: query,
-								type: 'phrase',
-								fields: ['funderName', 'ipTake', 'overview', 'profile'],
-								boost: 3,
-							},
-						},
-						{
-							multi_match: {
-								query: query,
-								fields: ['funderName', 'ipTake', 'overview', 'profile'],
-								boost: 1,
-							},
-						},
-					],
-					minimum_should_match: 1,
+					must: mustClauses,
+				},
+			},
+			highlight: {
+				fields: {
+					funderName: {},
 				},
 			},
 		};
@@ -65,18 +88,16 @@ async function runSearchQuery(query) {
 
 		for (const hit of hits.hits) {
 			const source = hit._source;
-			const funderNameLower = (source.funderName || '').toLowerCase();
-			const queryLower = query.toLowerCase();
+			const highlight = hit.highlight || {};
 
-			// Determine if the query is in the funderName field (primary)
-			if (funderNameLower.includes(queryLower)) {
+			if (highlight.funderName) {
 				primaryResults.push({
 					id: hit._id,
 					funderName: source.funderName,
 					funderUrl: source.funderUrl,
 					ipTake: source.ipTake,
 					overview: source.overview,
-					profile: source.profile, // ✅ Add this
+					profile: source.profile,
 					issueAreas: source.issueAreas,
 				});
 			} else {
@@ -86,7 +107,7 @@ async function runSearchQuery(query) {
 					funderUrl: source.funderUrl,
 					ipTake: source.ipTake,
 					overview: source.overview,
-					profile: source.profile, // ✅ Add this
+					profile: source.profile,
 					issueAreas: source.issueAreas,
 				});
 			}
