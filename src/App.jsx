@@ -43,9 +43,7 @@ function App() {
 
 	return (
 		<div className='min-h-screen p-6 bg-gray-50'>
-			<h1 className='text-2xl font-bold mb-6'>
-				Grant Finder Search
-			</h1>
+			<h1 className='text-2xl font-bold mb-6'>Grant Finder Search</h1>
 
 			<div className='flex flex-col md:flex-row gap-6'>
 				{/* Left Sidebar */}
@@ -88,14 +86,16 @@ function App() {
 							<h2 className='text-xl font-bold mb-2'>
 								Funders Matching Your Search
 							</h2>
-							<FunderList results={primaryResults} />
+							<FunderList results={primaryResults} fetch990={true} />{' '}
+							{/* primary */}
 						</div>
 					)}
 
 					{secondaryResults.length > 0 && (
 						<div className='mb-8'>
 							<h2 className='text-xl font-bold mb-2'>Other Mentions</h2>
-							<FunderList results={secondaryResults} />
+							<FunderList results={secondaryResults} fetch990={false} />{' '}
+							{/* secondary */}
 						</div>
 					)}
 				</div>

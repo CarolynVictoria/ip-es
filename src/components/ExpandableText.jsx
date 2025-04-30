@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Link } from 'lucide-react';
 
-export const DEFAULT_EXPANDABLE_LIMIT = 600;
+export const DEFAULT_EXPANDABLE_LIMIT = 500;
 
 function ExpandableText({
 	text = '',
 	limit = DEFAULT_EXPANDABLE_LIMIT,
 	className = '',
+	showInlineLink = false,
+	linkUrl = '',
+	linkText = 'Open full profile',
 }) {
 	const [expanded, setExpanded] = useState(false);
 
 	if (!text) return null;
 
 	const getTruncatedText = (text, limit) => {
-		if (text.length <= limit) return null;
+		if (text.length <= limit) return text;
 
 		const sentenceEndings = ['.', '!', '?'];
 		let index = limit;
@@ -32,18 +36,32 @@ function ExpandableText({
 			index++;
 		}
 
-		return text.slice(0, limit).trim(); // fallback
+		return text.slice(0, limit).trim(); // fallback if no sentence ending found
 	};
 
 	const preview = getTruncatedText(text, limit);
-	const isLong = !!preview;
+	const isLong = text.length > limit;
 	const displayed = expanded || !isLong ? text : preview;
 
 	return (
 		<div className={className}>
 			<p className='text-gray-700'>
 				{displayed}
-				{!expanded && isLong && (
+				{showInlineLink && linkUrl && (
+					<>
+						{' '}
+						<a
+							href={linkUrl}
+							target='_blank'
+							rel='noopener noreferrer'
+							className='text-blue-600'
+						>
+							{linkText}{' '}
+							<Link size={16} className='inline ml-1 text-blue-600' />
+						</a>
+					</>
+				)}
+				{!showInlineLink && !expanded && isLong && (
 					<span
 						className='inline-flex items-center cursor-pointer text-blue-600'
 						onClick={() => setExpanded(true)}
@@ -52,7 +70,8 @@ function ExpandableText({
 					</span>
 				)}
 			</p>
-			{expanded && isLong && (
+
+			{!showInlineLink && expanded && isLong && (
 				<button
 					onClick={() => setExpanded(false)}
 					className='text-blue-600 text-sm mt-1 flex items-center underline'

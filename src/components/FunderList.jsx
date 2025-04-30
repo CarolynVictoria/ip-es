@@ -1,10 +1,10 @@
 import FunderCard from './FunderCard';
 
-function FunderList({ results }) {
+function FunderList({ results, fetch990 = true }) {
 	return (
-		<ul className='space-y-4'>
+		<ul>
 			{results.map((hit) => (
-				<FunderCard key={hit.id} hit={hit} />
+				<FunderCard key={hit._id} hit={hit} fetch990={fetch990} />
 			))}
 		</ul>
 	);

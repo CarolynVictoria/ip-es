@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import searchRouter from './routes/search.js';
+import nonprofitDataRoutes from './routes/nonprofitData.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -18,6 +19,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/search', searchRouter);
+
+app.use('/api/nonprofit-data', nonprofitDataRoutes);
 
 app.listen(PORT, () => {
 	console.log(`Backend server running on port ${PORT}`);

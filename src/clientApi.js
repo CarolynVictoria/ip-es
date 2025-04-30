@@ -1,3 +1,5 @@
+// clientApi.js
+
 async function fetchSearchResults(query, filters = {}) {
 	try {
 		const res = await fetch(import.meta.env.VITE_SEARCH_API_URL, {
@@ -20,4 +22,11 @@ async function fetchSearchResults(query, filters = {}) {
 	}
 }
 
-export { fetchSearchResults };
+// Propublica data 
+async function fetchNonprofitData(ein) {
+	const response = await fetch(`/api/nonprofit-data/${ein}`);
+	if (!response.ok) throw new Error('Failed to fetch nonprofit data');
+	return await response.json();
+}
+
+export { fetchSearchResults, fetchNonprofitData };

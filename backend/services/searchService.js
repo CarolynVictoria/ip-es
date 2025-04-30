@@ -86,30 +86,46 @@ async function runSearchQuery(rawQuery) {
 		const primaryResults = [];
 		const secondaryResults = [];
 
+		/* temp exclude major donor profiles to be inserted here */
+		const forbiddenIssueAreas = [
+			'Celebrity',
+			'Wall Street Donors',
+			'Tech Philanthropists',
+		];
+
 		for (const hit of hits.hits) {
 			const source = hit._source;
 			const highlight = hit.highlight || {};
 
+			const hasOnlyForbiddenIssueAreas =
+				source.issueAreas &&
+				source.issueAreas.length > 0 &&
+				source.issueAreas.every((area) => forbiddenIssueAreas.includes(area));
+
 			if (highlight.funderName) {
-				primaryResults.push({
-					id: hit._id,
-					funderName: source.funderName,
-					funderUrl: source.funderUrl,
-					ipTake: source.ipTake,
-					overview: source.overview,
-					profile: source.profile,
-					issueAreas: source.issueAreas,
-				});
+				if (!hasOnlyForbiddenIssueAreas) {
+					primaryResults.push({
+						id: hit._id,
+						funderName: source.funderName,
+						funderUrl: source.funderUrl,
+						ipTake: source.ipTake,
+						overview: source.overview,
+						profile: source.profile,
+						issueAreas: source.issueAreas,
+					});
+				}
 			} else {
-				secondaryResults.push({
-					id: hit._id,
-					funderName: source.funderName,
-					funderUrl: source.funderUrl,
-					ipTake: source.ipTake,
-					overview: source.overview,
-					profile: source.profile,
-					issueAreas: source.issueAreas,
-				});
+				if (!hasOnlyForbiddenIssueAreas) {
+					secondaryResults.push({
+						id: hit._id,
+						funderName: source.funderName,
+						funderUrl: source.funderUrl,
+						ipTake: source.ipTake,
+						overview: source.overview,
+						profile: source.profile,
+						issueAreas: source.issueAreas,
+					});
+				}
 			}
 		}
 
