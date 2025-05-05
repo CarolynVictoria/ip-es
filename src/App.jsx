@@ -3,6 +3,7 @@ import { fetchSearchResults } from './clientApi';
 import SearchInput from './components/SearchInput';
 import FunderList from './components/FunderList';
 import FilterPanel from './components/FilterPanel';
+import SearchOptions from './components/SearchOptions';
 
 function App() {
 	const [query, setQuery] = useState('');
@@ -11,6 +12,9 @@ function App() {
 	const [primaryResults, setPrimaryResults] = useState([]);
 	const [secondaryResults, setSecondaryResults] = useState([]);
 	const [loading, setLoading] = useState(false);
+
+		const [prioritizeNameMatches, setPrioritizeNameMatches] = useState(true);
+		const [includeSecondary, setIncludeSecondary] = useState(false);
 
 	const handleSearch = async (e) => {
 		if (e) e.preventDefault();
@@ -64,6 +68,13 @@ function App() {
 						setQuery={setQuery}
 						handleSearch={handleSearch}
 						handleClear={handleClear}
+					/>
+
+					<SearchOptions
+						prioritizeNameMatches={prioritizeNameMatches}
+						setPrioritizeNameMatches={setPrioritizeNameMatches}
+						includeSecondary={includeSecondary}
+						setIncludeSecondary={setIncludeSecondary}
 					/>
 
 					{/* Results */}
