@@ -14,7 +14,8 @@ function ExpandableText({
 }) {
 	const [expanded, setExpanded] = useState(false);
 
-	if (!text) return null;
+	// Ensure it's a usable string
+	if (typeof text !== 'string' || text.trim() === '') return null;
 
 	const getTruncatedText = (text, limit) => {
 		if (text.length <= limit) return text;

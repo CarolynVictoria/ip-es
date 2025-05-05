@@ -13,8 +13,8 @@ function App() {
 	const [secondaryResults, setSecondaryResults] = useState([]);
 	const [loading, setLoading] = useState(false);
 
-		const [prioritizeNameMatches, setPrioritizeNameMatches] = useState(true);
-		const [includeSecondary, setIncludeSecondary] = useState(false);
+	const [prioritizeNameMatches, setPrioritizeNameMatches] = useState(true);
+	const [includeSecondary, setIncludeSecondary] = useState(false);
 
 	const handleSearch = async (e) => {
 		if (e) e.preventDefault();
@@ -45,6 +45,26 @@ function App() {
 		setSelectedLocations(locations);
 	};
 
+	//	Semantic Search
+	const [semanticQuery, setSemanticQuery] = useState('');
+	const [semanticResults, setSemanticResults] = useState([]);
+
+	const handleSemanticSearch = async (e) => {
+		if (e) e.preventDefault();
+		if (!semanticQuery.trim()) return;
+
+		setLoading(true);
+		const res = await fetchSearchResults(semanticQuery, {}, true); // flag for semantic
+		setSemanticResults(res?.primaryResults || []);
+		setLoading(false);
+	};
+
+	const handleSemanticClear = () => {
+		setSemanticQuery('');
+		setSemanticResults([]);
+		setLoading(false);
+	};
+
 	return (
 		<div className='min-h-screen p-6 bg-gray-50'>
 			<h1 className='text-2xl font-bold mb-6'>Grant Finder Search</h1>
@@ -68,6 +88,14 @@ function App() {
 						setQuery={setQuery}
 						handleSearch={handleSearch}
 						handleClear={handleClear}
+					/>
+
+					{/* Semantic Search Input */}
+					<SearchInput
+						query={semanticQuery}
+						setQuery={setSemanticQuery}
+						handleSearch={handleSemanticSearch}
+						handleClear={handleSemanticClear}
 					/>
 
 					<SearchOptions
@@ -107,6 +135,21 @@ function App() {
 							<h2 className='text-xl font-bold mb-2'>Other Mentions</h2>
 							<FunderList results={secondaryResults} fetch990={false} />{' '}
 							{/* secondary */}
+						</div>
+					)}
+
+					{!loading && semanticResults.length > 0 && (
+						<p className='mb-4 text-gray-700'>
+							{semanticResults.length} semantic matches found
+						</p>
+					)}
+
+					{semanticResults.length > 0 && (
+						<div className='mb-8'>
+							<h2 className='text-xl font-bold mb-2'>
+								Semantic Search Results
+							</h2>
+							<FunderList results={semanticResults} fetch990={true} />
 						</div>
 					)}
 				</div>

@@ -1,13 +1,23 @@
 // clientApi.js
+import axios from 'axios'; // optional, only needed if you switch to axios later
 
-async function fetchSearchResults(query, filters = {}) {
+async function fetchSearchResults(
+	query,
+	filters = {},
+	useSemantic = false,
+	exactMatch = false
+) {
 	try {
-		const res = await fetch(import.meta.env.VITE_SEARCH_API_URL, {
+		const endpoint = useSemantic
+			? '/api/search/semantic'
+			: import.meta.env.VITE_SEARCH_API_URL;
+
+		const res = await fetch(endpoint, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify({ query, filters }),
+			body: JSON.stringify({ query, filters, exactMatch }), // <== added exactMatch
 		});
 
 		if (!res.ok) {
@@ -22,7 +32,7 @@ async function fetchSearchResults(query, filters = {}) {
 	}
 }
 
-// Propublica data 
+// ProPublica 990 data
 async function fetchNonprofitData(ein) {
 	const response = await fetch(`/api/nonprofit-data/${ein}`);
 	if (!response.ok) throw new Error('Failed to fetch nonprofit data');

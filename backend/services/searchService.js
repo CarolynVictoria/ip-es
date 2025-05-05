@@ -22,56 +22,49 @@ async function runSearchQuery(rawQuery) {
 		const isQuoted = /^".*"$/.test(cleaned);
 		const normalizedQuery = cleaned.replace(/^"|"$/g, '');
 
-		// Split on + or comma to form compound subqueries
 		const subqueries = normalizedQuery
 			.split(/\+|,/)
 			.map((s) => s.trim())
 			.filter(Boolean);
 
-		const mustClauses = subqueries.map((term) => ({
-			bool: {
-				should: [
-					{
-						multi_match: {
-							query: term,
-							type: 'phrase',
-							fields: ['funderName^5', 'ipTake^3', 'overview^3', 'profile^3'],
-							boost: 10,
-						},
-					},
-					{
-						multi_match: {
-							query: term,
-							type: 'best_fields',
-							operator: 'and',
-							fields: ['funderName^4', 'ipTake^2', 'overview^2', 'profile^2'],
-							boost: 5,
-						},
-					},
-					{
-						multi_match: {
-							query: term,
-							type: 'bool_prefix',
-							fields: [
-								'funderName.autocomplete',
-								'ipTake.autocomplete',
-								'overview.autocomplete',
-								'profile.autocomplete',
-							],
-							boost: 2,
-						},
-					},
+		const mustClause = {
+			multi_match: {
+				query: normalizedQuery,
+				type: 'cross_fields',
+				operator: 'and',
+				fields: [
+					'funderName^10',
+					'overview^5',
+					'ipTake^4',
+					'profile^3',
+					'funderName.autocomplete^2',
+					'overview.autocomplete^2',
+					'ipTake.autocomplete^2',
+					'profile.autocomplete^2',
 				],
-				minimum_should_match: 1,
 			},
-		}));
+		};
+
+		const phraseClause =
+			isQuoted || normalizedQuery.includes(' ')
+				? [
+						{
+							match_phrase: {
+								funderName: {
+									query: normalizedQuery,
+									boost: 8,
+								},
+							},
+						},
+				  ]
+				: [];
 
 		const esQuery = {
 			index: 'funders-grant-finder',
 			size: 200,
 			query: {
 				bool: {
-					must: mustClauses,
+					must: [mustClause],
 				},
 			},
 			highlight: {
@@ -86,7 +79,6 @@ async function runSearchQuery(rawQuery) {
 		const primaryResults = [];
 		const secondaryResults = [];
 
-		/* temp exclude major donor profiles to be inserted here */
 		const forbiddenIssueAreas = [
 			'Celebrity',
 			'Wall Street Donors',
@@ -136,4 +128,46 @@ async function runSearchQuery(rawQuery) {
 	}
 }
 
-export { runSearchQuery };
+async function runSemanticSearchQuery(rawQuery) {
+	try {
+		const cleaned = rawQuery.trim();
+		if (!cleaned) return { primaryResults: [], secondaryResults: [] };
+
+		const esQuery = {
+			index: 'funders-grant-finder-semantic',
+			size: 100,
+			query: {
+				bool: {
+					should: [
+						{ semantic: { query: cleaned, field: 'overview' } },
+						{ semantic: { query: cleaned, field: 'ipTake' } },
+						{ semantic: { query: cleaned, field: 'profile' } },
+					],
+				},
+			},
+		};
+
+		const { hits } = await client.search(esQuery);
+
+		const primaryResults = hits.hits.map((hit) => ({
+			id: hit._id,
+			funderName: hit._source.funderName,
+			funderUrl: hit._source.funderUrl,
+			ipTake: hit._source.ipTake?.text || '',
+			overview: hit._source.overview?.text || '',
+			profile: hit._source.profile?.text || '',
+			issueAreas: hit._source.issueAreas || [],
+			score: hit._score,
+		}));
+
+		return { primaryResults, secondaryResults: [] };
+	} catch (error) {
+		console.error(
+			'Error in runSemanticSearchQuery:',
+			error.meta?.body?.error || error
+		);
+		throw error;
+	}
+}
+
+export { runSearchQuery, runSemanticSearchQuery };

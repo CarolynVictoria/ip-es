@@ -24,6 +24,11 @@ function FunderCard({ hit, fetch990 = true }) {
 				<h2 className='text-lg uppercase font-semibold text-gray-800'>
 					{hit.funderName}
 				</h2>
+				{hit.score && (
+					<div className='text-xs text-gray-400 italic mt-1'>
+						Relevance score: {hit.score.toFixed(2)}
+					</div>
+				)}
 			</div>
 
 			{/* Card Body */}
