@@ -4,8 +4,9 @@ import { runSemanticSearchQuery } from '../services/searchService.js';
 
 const router = express.Router();
 
+//	for keyword search
 router.post('/', async (req, res) => {
-	const { query, filters } = req.body;
+	const { query, filters = {} } = req.body;
 
 	if (!query) {
 		return res.status(400).json({ error: 'Query is required' });
@@ -22,11 +23,11 @@ router.post('/', async (req, res) => {
 
 // for semantic search
 router.post('/semantic', async (req, res) => {
-	const { query } = req.body;
+	const { query, filters = {} } = req.body;
 	if (!query) return res.status(400).json({ error: 'Query is required' });
 
 	try {
-		const results = await runSemanticSearchQuery(query);
+		const results = await runSemanticSearchQuery(query, filters);
 		res.json(results);
 	} catch (error) {
 		console.error('Semantic search error:', error);

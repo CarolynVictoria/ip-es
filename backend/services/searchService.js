@@ -16,7 +16,7 @@ const client = new Client({
 	},
 });
 
-async function runSearchQuery(rawQuery) {
+async function runSearchQuery(rawQuery, filters = {}) {
 	try {
 		const cleaned = rawQuery.trim();
 		const isQuoted = /^".*"$/.test(cleaned);
@@ -45,19 +45,19 @@ async function runSearchQuery(rawQuery) {
 			},
 		};
 
-		const phraseClause =
-			isQuoted || normalizedQuery.includes(' ')
-				? [
-						{
-							match_phrase: {
-								funderName: {
-									query: normalizedQuery,
-									boost: 8,
-								},
-							},
-						},
-				  ]
-				: [];
+		const filterClauses = [];
+
+		if (filters.issueAreas?.length) {
+			filterClauses.push({
+				terms: { issueAreas: filters.issueAreas },
+			});
+		}
+
+		if (filters.locations?.length) {
+			filterClauses.push({
+				terms: { usStates: filters.locations }, // assumes `usStates` is your ES field
+			});
+		}
 
 		const esQuery = {
 			index: 'funders-grant-finder',
@@ -65,8 +65,10 @@ async function runSearchQuery(rawQuery) {
 			query: {
 				bool: {
 					must: [mustClause],
+					filter: filterClauses,
 				},
 			},
+
 			highlight: {
 				fields: {
 					funderName: {},
@@ -128,10 +130,24 @@ async function runSearchQuery(rawQuery) {
 	}
 }
 
-async function runSemanticSearchQuery(rawQuery) {
+async function runSemanticSearchQuery(rawQuery, filters = {}) {
 	try {
 		const cleaned = rawQuery.trim();
 		if (!cleaned) return { primaryResults: [], secondaryResults: [] };
+
+		const filterClauses = [];
+
+		if (filters.issueAreas?.length) {
+			filterClauses.push({
+				terms: { issueAreas: filters.issueAreas },
+			});
+		}
+
+		if (filters.locations?.length) {
+			filterClauses.push({
+				terms: { usStates: filters.locations },
+			});
+		}
 
 		const esQuery = {
 			index: 'funders-grant-finder-semantic',
@@ -143,6 +159,7 @@ async function runSemanticSearchQuery(rawQuery) {
 						{ semantic: { query: cleaned, field: 'ipTake' } },
 						{ semantic: { query: cleaned, field: 'profile' } },
 					],
+					filter: filterClauses,
 				},
 			},
 		};

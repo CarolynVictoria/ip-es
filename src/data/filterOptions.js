@@ -100,11 +100,9 @@ export const LOCATIONS = [
 	'Texas',
 	'Utah',
 	'Vermont',
-	'Virginia',
+	'Virginia and West Virginia',
 	'Washington',
- 'Washington, D.C.',
-	'West Virginia',
+	'Washington, D.C.',
 	'Wisconsin',
 	'Wyoming',
-	// (continue full list of 50 states + DC)
 ];
