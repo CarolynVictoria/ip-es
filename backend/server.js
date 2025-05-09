@@ -13,7 +13,10 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 console.log('[DEBUG] CLOUD ID:', process.env.ELASTICSEARCH_CLOUD_ID);
 
 const app = express();
-const PORT = process.env.BACKEND_PORT || 5500;
+const PORT = process.env.BACKEND_PORT;
+if (!PORT) {
+	throw new Error('Missing BACKEND_PORT in .env file');
+}
 
 app.use(cors());
 app.use(express.json());

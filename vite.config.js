@@ -10,10 +10,10 @@ export default defineConfig({
 		},
 	},
 	server: {
-		open:	true,
+		open: true,
 		proxy: {
 			'/api': {
-				target: 'http://localhost:5500', // ✅ matches BACKEND_PORT
+				target: 'http://localhost:5505', // ✅ matches BACKEND_PORT
 				changeOrigin: true,
 				secure: false,
 			},

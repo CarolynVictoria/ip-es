@@ -14,18 +14,22 @@ router.get('/:query', async (req, res) => {
 		if (/^\d{9}$/.test(query)) {
 			ein = query;
 		} else {
-			// Otherwise treat as name and search
+			// Relaxed query: allow partial matches in funder names
 			const searchUrl = `https://projects.propublica.org/nonprofits/api/v2/search.json?q=${encodeURIComponent(
 				query
 			)}`;
 			const searchResp = await axios.get(searchUrl);
 			const results = searchResp.data.organizations;
 
+			// Relaxed match: Find the first matching org name, not just an exact one
 			if (!results || results.length === 0) {
 				return res.status(404).json({ error: 'Organization not found' });
 			}
 
-			ein = results[0].ein; // First match
+			ein =
+				results.find((org) =>
+					org.name.toLowerCase().includes(query.toLowerCase())
+				)?.ein || results[0].ein; // Use first match or fallback to the first result
 		}
 
 		// Now get 990 data

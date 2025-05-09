@@ -1,9 +1,10 @@
 // clientApi.js
-import axios from 'axios'; // optional, only needed if you switch to axios later
+
+// clientApi.js
 
 async function fetchSearchResults(
 	query,
-	filters = {},
+	{ issueAreas = [], locations = [] } = {},
 	useSemantic = false,
 	exactMatch = false
 ) {
@@ -17,7 +18,14 @@ async function fetchSearchResults(
 			headers: {
 				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify({ query, filters, exactMatch }), // <== added exactMatch
+			body: JSON.stringify({
+				query,
+				filters: {
+					issueAreas,
+					locations,
+				},
+				exactMatch,
+			}),
 		});
 
 		if (!res.ok) {
@@ -25,10 +33,12 @@ async function fetchSearchResults(
 		}
 
 		const data = await res.json();
-		return data;
+
+		// ✅ Directly return the `results` array
+		return { results: data.results || [] };
 	} catch (err) {
 		console.error('Search request failed:', err);
-		return { hits: { hits: [] } }; // fallback
+		return { results: [] };
 	}
 }
 

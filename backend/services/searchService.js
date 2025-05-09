@@ -16,10 +16,34 @@ const client = new Client({
 	},
 });
 
+// temp avoid major donor profiles
+const forbiddenIssueAreas = [
+	'Celebrity',
+	'Wall Street Donors',
+	'Tech Philanthropists',
+];
+
+// cvm added 5/6/2025 to process filters
+function getIndexName(useSemantic, filters) {
+	const hasLocationFilter =
+		filters.locations &&
+		Array.isArray(filters.locations) &&
+		filters.locations.length > 0;
+
+	if (useSemantic) {
+		return hasLocationFilter
+			? 'funders-grant-finder-places-semantic'
+			: 'funders-grant-finder-semantic';
+	} else {
+		return hasLocationFilter
+			? 'funders-grant-finder-places'
+			: 'funders-grant-finder';
+	}
+}
+
 async function runSearchQuery(rawQuery, filters = {}) {
 	try {
-		const cleaned = rawQuery.trim();
-		const isQuoted = /^".*"$/.test(cleaned);
+		const cleaned = typeof rawQuery === 'string' ? rawQuery.trim() : '';
 		const normalizedQuery = cleaned.replace(/^"|"$/g, '');
 
 		const subqueries = normalizedQuery
@@ -27,48 +51,54 @@ async function runSearchQuery(rawQuery, filters = {}) {
 			.map((s) => s.trim())
 			.filter(Boolean);
 
-		const mustClause = {
-			multi_match: {
-				query: normalizedQuery,
-				type: 'cross_fields',
-				operator: 'and',
-				fields: [
-					'funderName^10',
-					'overview^5',
-					'ipTake^4',
-					'profile^3',
-					'funderName.autocomplete^2',
-					'overview.autocomplete^2',
-					'ipTake.autocomplete^2',
-					'profile.autocomplete^2',
-				],
-			},
-		};
+		const mustClause = cleaned
+			? {
+					multi_match: {
+						query: normalizedQuery,
+						type: 'cross_fields',
+						operator: 'and',
+						fields: [
+							'funderName^10', // Fundraising priority, boost the funderName field
+							'overview^5', // Decrease weight on these fields
+							'ipTake^4',
+							'profile^3',
+							'funderName.autocomplete^6', // Increase weight on autocomplete matches
+							'overview.autocomplete^2', // Keep autocomplete boosts but lower
+							'ipTake.autocomplete^2',
+							'profile.autocomplete^2',
+						],
+					},
+			  }
+			: null;
 
 		const filterClauses = [];
 
 		if (filters.issueAreas?.length) {
-			filterClauses.push({
-				terms: { issueAreas: filters.issueAreas },
-			});
+			filterClauses.push({ terms: { issueAreas: filters.issueAreas } });
 		}
-
 		if (filters.locations?.length) {
-			filterClauses.push({
-				terms: { usStates: filters.locations }, // assumes `usStates` is your ES field
-			});
+			filterClauses.push({ terms: { state: filters.locations } });
 		}
 
 		const esQuery = {
-			index: 'funders-grant-finder',
+			index: getIndexName(false, filters),
 			size: 200,
+			_source: [
+				'funderName',
+				'funderUrl',
+				'overview',
+				'ipTake',
+				'profile',
+				'issueAreas',
+				'state',
+			],
 			query: {
 				bool: {
-					must: [mustClause],
+					...(mustClause ? { must: [mustClause] } : {}),
 					filter: filterClauses,
 				},
 			},
-
+			...(mustClause ? {} : { sort: [{ 'funderName.keyword': 'asc' }] }),
 			highlight: {
 				fields: {
 					funderName: {},
@@ -76,54 +106,42 @@ async function runSearchQuery(rawQuery, filters = {}) {
 			},
 		};
 
+		console.log(
+			'Final ES Query (runSearchQuery):',
+			JSON.stringify(esQuery, null, 2)
+		);
+
 		const { hits } = await client.search(esQuery);
 
-		const primaryResults = [];
-		const secondaryResults = [];
-
-		const forbiddenIssueAreas = [
-			'Celebrity',
-			'Wall Street Donors',
-			'Tech Philanthropists',
-		];
+		const results = [];
 
 		for (const hit of hits.hits) {
 			const source = hit._source;
 			const highlight = hit.highlight || {};
 
+			// Apply the forbidden issue areas filter
 			const hasOnlyForbiddenIssueAreas =
 				source.issueAreas &&
 				source.issueAreas.length > 0 &&
 				source.issueAreas.every((area) => forbiddenIssueAreas.includes(area));
 
-			if (highlight.funderName) {
-				if (!hasOnlyForbiddenIssueAreas) {
-					primaryResults.push({
-						id: hit._id,
-						funderName: source.funderName,
-						funderUrl: source.funderUrl,
-						ipTake: source.ipTake,
-						overview: source.overview,
-						profile: source.profile,
-						issueAreas: source.issueAreas,
-					});
-				}
-			} else {
-				if (!hasOnlyForbiddenIssueAreas) {
-					secondaryResults.push({
-						id: hit._id,
-						funderName: source.funderName,
-						funderUrl: source.funderUrl,
-						ipTake: source.ipTake,
-						overview: source.overview,
-						profile: source.profile,
-						issueAreas: source.issueAreas,
-					});
-				}
-			}
+			if (hasOnlyForbiddenIssueAreas) continue;
+
+			results.push({
+				id: hit._id,
+				funderName: source.funderName,
+				funderUrl: source.funderUrl,
+				ipTake: source.ipTake,
+				overview: source.overview,
+				profile: source.profile,
+				issueAreas: source.issueAreas,
+				state: source.state, // retain state for UI
+				matchType: highlight.funderName ? 'exact' : 'mention',
+				score: hit._score,
+			});
 		}
 
-		return { primaryResults, secondaryResults };
+		return { results };
 	} catch (error) {
 		console.error('Error in runSearchQuery:', error.meta?.body?.error || error);
 		throw error;
@@ -132,8 +150,8 @@ async function runSearchQuery(rawQuery, filters = {}) {
 
 async function runSemanticSearchQuery(rawQuery, filters = {}) {
 	try {
-		const cleaned = rawQuery.trim();
-		if (!cleaned) return { primaryResults: [], secondaryResults: [] };
+		const cleaned = typeof rawQuery === 'string' ? rawQuery.trim() : '';
+		const hasQuery = cleaned.length > 0;
 
 		const filterClauses = [];
 
@@ -145,39 +163,95 @@ async function runSemanticSearchQuery(rawQuery, filters = {}) {
 
 		if (filters.locations?.length) {
 			filterClauses.push({
-				terms: { usStates: filters.locations },
+				terms: { state: filters.locations },
 			});
 		}
 
+		if (!hasQuery && filterClauses.length === 0) {
+			return { results: [] };
+		}
+
 		const esQuery = {
-			index: 'funders-grant-finder-semantic',
-			size: 100,
-			query: {
-				bool: {
-					should: [
-						{ semantic: { query: cleaned, field: 'overview' } },
-						{ semantic: { query: cleaned, field: 'ipTake' } },
-						{ semantic: { query: cleaned, field: 'profile' } },
-					],
-					filter: filterClauses,
-				},
-			},
+			index: getIndexName(true, filters),
+			size: 200,
+			_source: [
+				'funderName',
+				'funderUrl',
+				'overview',
+				'ipTake',
+				'profile',
+				'issueAreas',
+				'state',
+			],
+			query: hasQuery
+				? {
+						bool: {
+							should: [
+								{
+									semantic: {
+										query: cleaned,
+										field: 'overview',
+									},
+								},
+								{
+									semantic: {
+										query: cleaned,
+										field: 'ipTake',
+									},
+								},
+								{
+									semantic: {
+										query: cleaned,
+										field: 'profile',
+									},
+								},
+							],
+							filter: filterClauses,
+						},
+				  }
+				: {
+						bool: {
+							filter: filterClauses,
+						},
+				  },
+			...(hasQuery ? {} : { sort: [{ 'funderName.keyword': 'asc' }] }),
 		};
+
+		console.log(
+			'Final ES Query (runSemanticSearchQuery):',
+			JSON.stringify(esQuery, null, 2)
+		);
 
 		const { hits } = await client.search(esQuery);
 
-		const primaryResults = hits.hits.map((hit) => ({
-			id: hit._id,
-			funderName: hit._source.funderName,
-			funderUrl: hit._source.funderUrl,
-			ipTake: hit._source.ipTake?.text || '',
-			overview: hit._source.overview?.text || '',
-			profile: hit._source.profile?.text || '',
-			issueAreas: hit._source.issueAreas || [],
-			score: hit._score,
-		}));
+		const results = [];
 
-		return { primaryResults, secondaryResults: [] };
+		for (const hit of hits.hits) {
+			const source = hit._source;
+
+			// Apply the forbidden issue areas filter
+			const hasOnlyForbiddenIssueAreas =
+				source.issueAreas &&
+				source.issueAreas.length > 0 &&
+				source.issueAreas.every((area) => forbiddenIssueAreas.includes(area));
+
+			if (hasOnlyForbiddenIssueAreas) continue;
+
+			results.push({
+				id: hit._id,
+				funderName: source.funderName,
+				funderUrl: source.funderUrl,
+				ipTake: source.ipTake?.text || '',
+				overview: source.overview?.text || '',
+				profile: source.profile?.text || '',
+				issueAreas: source.issueAreas || [],
+				state: source.state || [],
+				score: hit._score,
+				matchType: 'semantic', // Optional if you want to differentiate in UI
+			});
+		}
+
+		return { results };
 	} catch (error) {
 		console.error(
 			'Error in runSemanticSearchQuery:',

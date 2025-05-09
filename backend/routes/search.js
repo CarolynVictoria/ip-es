@@ -1,15 +1,24 @@
 import express from 'express';
-import { runSearchQuery } from '../services/searchService.js';
-import { runSemanticSearchQuery } from '../services/searchService.js';
+import {
+	runSearchQuery,
+	runSemanticSearchQuery,
+} from '../services/searchService.js';
 
 const router = express.Router();
 
-//	for keyword search
+// Keyword search
 router.post('/', async (req, res) => {
-	const { query, filters = {} } = req.body;
+	const { query = '', filters = {} } = req.body;
 
-	if (!query) {
-		return res.status(400).json({ error: 'Query is required' });
+	console.log('Received filters:', filters);
+
+	if (
+		typeof query !== 'string' ||
+		(query.trim().length === 0 &&
+			!filters.issueAreas?.length &&
+			!filters.locations?.length)
+	) {
+		return res.status(400).json({ error: 'Query or filters required' });
 	}
 
 	try {
@@ -21,10 +30,11 @@ router.post('/', async (req, res) => {
 	}
 });
 
-// for semantic search
+// Semantic search
 router.post('/semantic', async (req, res) => {
-	const { query, filters = {} } = req.body;
-	if (!query) return res.status(400).json({ error: 'Query is required' });
+	const { query = '', filters = {} } = req.body;
+
+	console.log('Received filters:', filters);
 
 	try {
 		const results = await runSemanticSearchQuery(query, filters);

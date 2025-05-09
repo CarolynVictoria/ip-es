@@ -9,31 +9,33 @@ function App() {
 	const [query, setQuery] = useState('');
 	const [selectedIssueAreas, setSelectedIssueAreas] = useState([]);
 	const [selectedLocations, setSelectedLocations] = useState([]);
-	const [primaryResults, setPrimaryResults] = useState([]);
-	const [secondaryResults, setSecondaryResults] = useState([]);
+	const [results, setResults] = useState([]); // unified results
 	const [loading, setLoading] = useState(false);
 
-	const [prioritizeNameMatches, setPrioritizeNameMatches] = useState(true);
-	const [includeSecondary, setIncludeSecondary] = useState(false);
+	const [funderNameOnly, setFunderNameOnly] = useState(true);
+	const [matchAll, setMatchAll] = useState(false);
 
 	const handleSearch = async (e) => {
 		if (e) e.preventDefault();
-		if (!query.trim()) return;
+		if (
+			!query.trim() &&
+			selectedIssueAreas.length === 0 &&
+			selectedLocations.length === 0
+		)
+			return;
 
 		setLoading(true);
 		const data = await fetchSearchResults(query, {
 			issueAreas: selectedIssueAreas,
 			locations: selectedLocations,
 		});
-		setPrimaryResults(data?.primaryResults || []);
-		setSecondaryResults(data?.secondaryResults || []);
+		setResults(data?.results || []);
 		setLoading(false);
 	};
 
 	const handleClear = () => {
 		setQuery('');
-		setPrimaryResults([]);
-		setSecondaryResults([]);
+		setResults([]);
 		setLoading(false);
 	};
 
@@ -45,17 +47,30 @@ function App() {
 		setSelectedLocations(locations);
 	};
 
-	//	Semantic Search
+	// Semantic Search
 	const [semanticQuery, setSemanticQuery] = useState('');
 	const [semanticResults, setSemanticResults] = useState([]);
 
 	const handleSemanticSearch = async (e) => {
 		if (e) e.preventDefault();
-		if (!semanticQuery.trim()) return;
+		if (
+			!semanticQuery.trim() &&
+			selectedIssueAreas.length === 0 &&
+			selectedLocations.length === 0
+		)
+			return;
 
 		setLoading(true);
-		const res = await fetchSearchResults(semanticQuery, {}, true); // flag for semantic
-		setSemanticResults(res?.primaryResults || []);
+		const res = await fetchSearchResults(
+			semanticQuery,
+			{
+				issueAreas: selectedIssueAreas,
+				locations: selectedLocations,
+			},
+			true
+		);
+		setSemanticResults(res?.results || []);
+		console.log('Semantic results:', res?.results);
 		setLoading(false);
 	};
 
@@ -83,74 +98,78 @@ function App() {
 				{/* Main Content */}
 				<div className='md:w-3/4 w-full'>
 					{/* Search Input */}
+					<label
+						htmlFor='search-input'
+						className='text-sm font-medium text-gray-700'
+					>
+						Keyword Search
+					</label>
 					<SearchInput
 						query={query}
 						setQuery={setQuery}
 						handleSearch={handleSearch}
 						handleClear={handleClear}
+						id='keyword-search-input' // Give the input a unique id
+					/>
+
+					{/* Search Options */}
+					<SearchOptions
+						funderNameOnly={funderNameOnly}
+						setFunderNameOnly={setFunderNameOnly}
+						matchAll={matchAll}
+						setMatchAll={setMatchAll}
 					/>
 
 					{/* Semantic Search Input */}
+					<label
+						htmlFor='search-input'
+						className='text-sm font-medium text-gray-700'
+					>
+						Smart Search
+					</label>
 					<SearchInput
 						query={semanticQuery}
 						setQuery={setSemanticQuery}
 						handleSearch={handleSemanticSearch}
 						handleClear={handleSemanticClear}
-					/>
-
-					<SearchOptions
-						prioritizeNameMatches={prioritizeNameMatches}
-						setPrioritizeNameMatches={setPrioritizeNameMatches}
-						includeSecondary={includeSecondary}
-						setIncludeSecondary={setIncludeSecondary}
+						id='semantic-search-input' // Give the input a unique id
 					/>
 
 					{/* Results */}
+
 					{loading && <p>Loading...</p>}
 
-					{!loading &&
-						(primaryResults.length > 0 || secondaryResults.length > 0) && (
+					{!loading && results.length > 0 && (
+						<>
 							<p className='mb-4 text-gray-700'>
-								{primaryResults.length + secondaryResults.length} matches found
+								{results.length} matches found
 							</p>
-						)}
 
-					{!loading &&
-						primaryResults.length === 0 &&
-						secondaryResults.length === 0 &&
-						query && <p>No results found.</p>}
-
-					{primaryResults.length > 0 && (
-						<div className='mb-8'>
-							<h2 className='text-xl font-bold mb-2'>
-								Funders Matching Your Search
-							</h2>
-							<FunderList results={primaryResults} fetch990={true} />{' '}
-							{/* primary */}
-						</div>
+							<div className='mb-8'>
+								<h2 className='text-xl font-bold mb-2'>Search Results</h2>
+								<FunderList results={results} fetch990={true} />
+							</div>
+						</>
 					)}
-
-					{secondaryResults.length > 0 && (
-						<div className='mb-8'>
-							<h2 className='text-xl font-bold mb-2'>Other Mentions</h2>
-							<FunderList results={secondaryResults} fetch990={false} />{' '}
-							{/* secondary */}
-						</div>
+					{!loading && results.length === 0 && query && (
+						<p>No results found.</p>
 					)}
-
 					{!loading && semanticResults.length > 0 && (
-						<p className='mb-4 text-gray-700'>
-							{semanticResults.length} semantic matches found
-						</p>
-					)}
+						<>
+							<p className='mb-4 text-gray-700'>
+								{semanticResults.length} semantic matches found
+							</p>
 
-					{semanticResults.length > 0 && (
-						<div className='mb-8'>
-							<h2 className='text-xl font-bold mb-2'>
-								Semantic Search Results
-							</h2>
-							<FunderList results={semanticResults} fetch990={true} />
-						</div>
+							<div className='mb-8'>
+								<h2 className='text-xl font-bold mb-2'>
+									Semantic Search Results
+								</h2>
+								<FunderList results={semanticResults} fetch990={true} />
+							</div>
+						</>
+					)}
+					{!loading && semanticResults.length === 0 && semanticQuery && (
+						<p>No semantic results found.</p>
 					)}
 				</div>
 			</div>

@@ -1,3 +1,5 @@
+// frontend/src/components/FunderCard.js
+
 import ExpandableText, { DEFAULT_EXPANDABLE_LIMIT } from './ExpandableText';
 import { useEffect, useState } from 'react';
 import { fetchNonprofitData } from '../clientApi'; // adjust if path differs
@@ -11,6 +13,7 @@ function FunderCard({ hit, fetch990 = true }) {
 
 	useEffect(() => {
 		if (fetch990 && hit.funderName) {
+			// Adjusted fetch logic to handle relaxed query matching
 			fetchNonprofitData(hit.funderName)
 				.then(setNonprofitStats)
 				.catch((err) => console.error('990 data fetch failed:', err));
@@ -24,7 +27,7 @@ function FunderCard({ hit, fetch990 = true }) {
 				<h2 className='text-lg uppercase font-semibold text-gray-800'>
 					{hit.funderName}
 				</h2>
-				{hit.score && (
+				{typeof hit.score === 'number' && (
 					<div className='text-xs text-gray-400 italic mt-1'>
 						Relevance score: {hit.score.toFixed(2)}
 					</div>
@@ -66,10 +69,9 @@ function FunderCard({ hit, fetch990 = true }) {
 						</div>
 					)}
 				</div>
-
 				{/* Right Sidebar */}
 				<div className='md:ml-6 mt-6 md:mt-0 flex flex-col w-full md:w-[250px] space-y-4'>
-					{/* Issue Areas Infobox */}
+					{/* Sidebar Box: Issue Areas */}
 					{sortedIssueAreas.length > 0 && (
 						<div className='bg-gray-200 p-3 rounded shadow-sm self-start w-full'>
 							<h3 className='mb-2 text-sm font-bold text-gray-700 uppercase'>
