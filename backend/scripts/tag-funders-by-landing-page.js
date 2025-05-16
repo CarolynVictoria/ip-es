@@ -26,8 +26,9 @@ if (!process.env.WP_API_USER || !process.env.WP_API_PASSWORD) {
 
 // Base URL for the WP REST API
 const WP_API_BASE =
-	process.env.WP_API_BASE || 'https://www.insidephilanthropy.com/wp-json/wp/v2';
-if (!WP_API_BASE.includes('insidephilanthropy.com')) {
+	process.env.WP_API_BASE ||
+	'https://www.staging24.insidephilanthropy.com/wp-json/wp/v2';
+if (!WP_API_BASE.includes('staging24.insidephilanthropy.com')) {
 	throw new Error(
 		'WP_API_BASE does not point to production — aborting for safety.'
 	);
@@ -42,7 +43,7 @@ if (!fs.existsSync(DATA_DIR)) {
 // Input CSV path
 const CSV_PATH = path.join(
 	DATA_DIR,
-	'grantfinder-issues-landing-pages-assigned-to-tags-data-rerun.csv'
+	'grantfinder-issues-landing-pages-assigned-to-tags-data.csv'
 );
 
 // Create Keep-Alive HTTP agents
@@ -65,7 +66,7 @@ const wp = axios.create({
 // Utility functions
 // -----------------------------------------------------------------------------
 
-async function extractFunderLinks(landingPageUrl) {
+/* async function extractFunderLinks(landingPageUrl) {
 	try {
 		const { data } = await axios.get(landingPageUrl);
 		const $ = cheerio.load(data);
@@ -77,6 +78,41 @@ async function extractFunderLinks(landingPageUrl) {
 			console.log('SITE_ORIGIN:', SITE_ORIGIN, '→ raw href:', href);
 			if (href && href.startsWith(`${SITE_ORIGIN}/`)) {
 				const cleanHref = href.split('#')[0];
+				console.log(`Found funder link: ${cleanHref}`);
+				links.push(cleanHref);
+			}
+		});
+
+		return [...new Set(links)];
+	} catch (err) {
+		console.error(`Failed to fetch or parse ${landingPageUrl}:`, err.message);
+		return [];
+	}
+} */
+// cvm test for non www links
+async function extractFunderLinks(landingPageUrl) {
+	try {
+		const { data } = await axios.get(landingPageUrl);
+		const $ = cheerio.load(data);
+		const links = [];
+
+		// canonical origin (www) and its non‑www variant
+		const SITE_ORIGIN = new URL(WP_API_BASE).origin; // e.g. "https://www.staging24.insidephilanthropy.com"
+		const ALT_ORIGIN = SITE_ORIGIN.replace('://www.', '://'); // e.g. "https://staging24.insidephilanthropy.com"
+
+		$('.foundation-list-link h3.wp-block-heading a').each((_, el) => {
+			const href = $(el).attr('href');
+			console.log('raw href:', href);
+
+			if (
+				href &&
+				(href.startsWith(`${SITE_ORIGIN}/`) ||
+					href.startsWith(`${ALT_ORIGIN}/`))
+			) {
+				// strip fragment
+				let cleanHref = href.split('#')[0];
+				// normalize non‑www back to www
+				cleanHref = cleanHref.replace(ALT_ORIGIN, SITE_ORIGIN);
 				console.log(`Found funder link: ${cleanHref}`);
 				links.push(cleanHref);
 			}
@@ -227,7 +263,14 @@ function logFailure(filePath, postTitle, identifier, reason, tagName, tagId) {
 		console.log(`Processing landing page: ${url} → tag: ${tag}`);
 		const funderUrls = await extractFunderLinks(url);
 
-		for (const funderUrl of funderUrls) {
+		// temp cvm to process non www urls
+		const nonWwwUrls = funderUrls.filter((u) => {
+			const host = new URL(u).hostname;
+			return !host.startsWith('www.');
+		});
+
+		// temp cvm to loop through non www urls
+		for (const funderUrl of nonWwwUrls) {
 			fs.appendFileSync(linksLogPath, `${funderUrl}\n`);
 
 			const postId = await getPostIdByUrl(funderUrl);
