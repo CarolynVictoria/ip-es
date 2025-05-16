@@ -13,7 +13,7 @@ export default defineConfig({
 		open: true,
 		proxy: {
 			'/api': {
-				target: 'http://localhost:5505', // ✅ matches BACKEND_PORT
+				target: 'http://localhost:5505', // ✅ matches PORT
 				changeOrigin: true,
 				secure: false,
 			},
