@@ -27,10 +27,10 @@ if (!process.env.WP_API_USER || !process.env.WP_API_PASSWORD) {
 // Base URL for the WP REST API
 const WP_API_BASE =
 	process.env.WP_API_BASE ||
-	'https://www.staging24.insidephilanthropy.com/wp-json/wp/v2';
-if (!WP_API_BASE.includes('staging24.insidephilanthropy.com')) {
+	'https://www.insidephilanthropy.com/wp-json/wp/v2';
+if (!WP_API_BASE.includes('insidephilanthropy.com')) {
 	throw new Error(
-		'WP_API_BASE does not point to production — aborting for safety.'
+		'WP_API_BASE does not point to desired target — aborting for safety.'
 	);
 }
 
@@ -43,7 +43,7 @@ if (!fs.existsSync(DATA_DIR)) {
 // Input CSV path
 const CSV_PATH = path.join(
 	DATA_DIR,
-	'grantfinder-issues-landing-pages-assigned-to-tags-data.csv'
+	'grantfinder-places-landing-pages-assigned-to-tags-data-rerun.csv'
 );
 
 // Create Keep-Alive HTTP agents
@@ -65,30 +65,6 @@ const wp = axios.create({
 // -----------------------------------------------------------------------------
 // Utility functions
 // -----------------------------------------------------------------------------
-
-/* async function extractFunderLinks(landingPageUrl) {
-	try {
-		const { data } = await axios.get(landingPageUrl);
-		const $ = cheerio.load(data);
-		const links = [];
-
-		const SITE_ORIGIN = new URL(WP_API_BASE).origin;
-		$('.foundation-list-link h3.wp-block-heading a').each((_, el) => {
-			const href = $(el).attr('href');
-			console.log('SITE_ORIGIN:', SITE_ORIGIN, '→ raw href:', href);
-			if (href && href.startsWith(`${SITE_ORIGIN}/`)) {
-				const cleanHref = href.split('#')[0];
-				console.log(`Found funder link: ${cleanHref}`);
-				links.push(cleanHref);
-			}
-		});
-
-		return [...new Set(links)];
-	} catch (err) {
-		console.error(`Failed to fetch or parse ${landingPageUrl}:`, err.message);
-		return [];
-	}
-} */
 // cvm test for non www links
 async function extractFunderLinks(landingPageUrl) {
 	try {
@@ -97,24 +73,18 @@ async function extractFunderLinks(landingPageUrl) {
 		const links = [];
 
 		// canonical origin (www) and its non‑www variant
-		const SITE_ORIGIN = new URL(WP_API_BASE).origin; // e.g. "https://www.staging24.insidephilanthropy.com"
-		const ALT_ORIGIN = SITE_ORIGIN.replace('://www.', '://'); // e.g. "https://staging24.insidephilanthropy.com"
+		const SITE_ORIGIN = new URL(WP_API_BASE).origin; // e.g. "https://www.insidephilanthropy.com"
+		const ALT_ORIGIN = SITE_ORIGIN.replace('://www.', '://'); // e.g. "https://insidephilanthropy.com"
 
 		$('.foundation-list-link h3.wp-block-heading a').each((_, el) => {
 			const href = $(el).attr('href');
 			console.log('raw href:', href);
 
-			if (
-				href &&
-				(href.startsWith(`${SITE_ORIGIN}/`) ||
-					href.startsWith(`${ALT_ORIGIN}/`))
-			) {
+			if (href) {
 				// strip fragment
-				let cleanHref = href.split('#')[0];
-				// normalize non‑www back to www
-				cleanHref = cleanHref.replace(ALT_ORIGIN, SITE_ORIGIN);
-				console.log(`Found funder link: ${cleanHref}`);
-				links.push(cleanHref);
+				const noFragment = href.split('#')[0];
+				links.push(noFragment);
+				console.log(`Found funder link: ${noFragment}`);
 			}
 		});
 
@@ -168,34 +138,22 @@ async function getTagIdBySlug(slug) {
 }
 
 async function addTagToPost(postId, tagId) {
-	console.log(`Attempting to tag post ID ${postId} with tag ID ${tagId}`);
-	let post;
-	try {
-		const resp = await wp.get(`/posts/${postId}`);
-		post = resp.data;
-		const postTitle = post.title?.rendered || '';
-		const tags = new Set(post.tags || []);
+	// fetch the post’s existing tags
+	const resp = await wp.get(`/posts/${postId}`);
+	const post = resp.data;
+	const postTitle = post.title?.rendered || '';
+	const tags = new Set(post.tags || []);
 
-		if (tags.has(tagId)) {
-			console.log(`Post ID ${postId} already has tag ID ${tagId}`);
-			return { updated: false, title: postTitle, reason: 'already-tagged' };
-		}
-
-		tags.add(tagId);
-		await wp.put(`/posts/${postId}`, { tags: Array.from(tags) });
-		console.log(`Successfully tagged post ID ${postId} with tag ID ${tagId}`);
-		return { updated: true, title: postTitle, reason: null };
-	} catch (err) {
-		console.error(
-			`Failed to update post ID ${postId} with tag ID ${tagId}:`,
-			err.message
-		);
-		return {
-			updated: false,
-			title: post?.title?.rendered || '',
-			reason: err.message,
-		};
+	// silently skip if it already has this tag
+	if (tags.has(tagId)) {
+		return { updated: false, title: postTitle, reason: 'already-tagged' };
 	}
+
+	// otherwise add and report success
+	tags.add(tagId);
+	await wp.put(`/posts/${postId}`, { tags: Array.from(tags) });
+	console.log(`Successfully tagged post ID ${postId} with tag ID ${tagId}`);
+	return { updated: true, title: postTitle, reason: null };
 }
 
 function loadLandingPages(csvPath) {
@@ -226,9 +184,8 @@ function logFailure(filePath, postTitle, identifier, reason, tagName, tagId) {
 // -----------------------------------------------------------------------------
 // Main Script
 // -----------------------------------------------------------------------------
-
 (async () => {
-	// Load all landing pages in sorted order and process them all
+	// Load all landing pages in sorted order
 	const landingPages = loadLandingPages(CSV_PATH).sort((a, b) =>
 		a.url.localeCompare(b.url)
 	);
@@ -236,11 +193,10 @@ function logFailure(filePath, postTitle, identifier, reason, tagName, tagId) {
 	for (const { url, tag } of landingPages) {
 		const tagId = await getTagIdBySlug(tag);
 
-		// prepare per-tag log files
+		// prepare per‑tag log files
 		const linksLogPath = path.join(DATA_DIR, `found-links-${tag}.txt`);
 		const successLogPath = path.join(DATA_DIR, `tagging-success-${tag}.csv`);
 		const failureLogPath = path.join(DATA_DIR, `tagging-failure-${tag}.csv`);
-
 		if (!fs.existsSync(linksLogPath)) {
 			fs.writeFileSync(linksLogPath, 'found_link\n');
 		}
@@ -263,14 +219,18 @@ function logFailure(filePath, postTitle, identifier, reason, tagName, tagId) {
 		console.log(`Processing landing page: ${url} → tag: ${tag}`);
 		const funderUrls = await extractFunderLinks(url);
 
-		// temp cvm to process non www urls
-		const nonWwwUrls = funderUrls.filter((u) => {
-			const host = new URL(u).hostname;
-			return !host.startsWith('www.');
-		});
+		// 1) log and skip any hrefs that are relative
+		const relativeUrls = funderUrls.filter((u) => u.startsWith('/'));
+		for (const rel of relativeUrls) {
+			console.warn(`Skipping relative URL: ${rel}`);
+			fs.appendFileSync(linksLogPath, `relative,${rel}\n`);
+		}
 
-		// temp cvm to loop through non www urls
-		for (const funderUrl of nonWwwUrls) {
+		// 2) build list of absolute URLs (http or https)
+		const absoluteUrls = funderUrls.filter((u) => /^https?:\/\//.test(u));
+
+		// 3) loop through all absolute URLs (both www and non‑www)
+		for (const funderUrl of absoluteUrls) {
 			fs.appendFileSync(linksLogPath, `${funderUrl}\n`);
 
 			const postId = await getPostIdByUrl(funderUrl);
@@ -280,18 +240,14 @@ function logFailure(filePath, postTitle, identifier, reason, tagName, tagId) {
 			}
 
 			const { updated, title, reason } = await addTagToPost(postId, tagId);
+
 			if (updated) {
 				logSuccess(successLogPath, title, postId, tag, tagId);
-			} else {
-				logFailure(
-					failureLogPath,
-					title,
-					postId,
-					reason || 'already-tagged-or-update-failed',
-					tag,
-					tagId
-				);
+			} else if (reason && reason !== 'already-tagged') {
+				// only log failures that are not 'already-tagged'
+				logFailure(failureLogPath, title, postId, reason, tag, tagId);
 			}
+			// if reason === 'already-tagged', do nothing
 		}
 	}
 })();
