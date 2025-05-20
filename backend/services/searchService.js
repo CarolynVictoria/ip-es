@@ -37,7 +37,7 @@ function getIndexName(useSemantic, filters) {
 	} else {
 		return hasLocationFilter
 			? 'funders-grant-finder-places'
-			: 'funders-grant-finder';
+			: 'funders-grant-finder-issues';
 	}
 }
 

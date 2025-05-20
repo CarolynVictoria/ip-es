@@ -86,7 +86,7 @@ function App() {
 
 			<div className='flex flex-col md:flex-row gap-6'>
 				{/* Left Sidebar */}
-				<div className='md:w-1/4 w-full max-h-screen overflow-y-auto p-2"'>
+				<div className='md:w-1/4 w-full max-h-screen overflow-y-auto p-2'>
 					<FilterPanel
 						selectedIssueAreas={selectedIssueAreas}
 						onIssueAreaChange={handleIssueAreaChange}

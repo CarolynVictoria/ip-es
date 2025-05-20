@@ -43,7 +43,7 @@ if (!fs.existsSync(DATA_DIR)) {
 // Input CSV path
 const CSV_PATH = path.join(
 	DATA_DIR,
-	'grantfinder-places-landing-pages-assigned-to-tags-data-rerun.csv'
+	'grantfinder-issues-landing-pages-assigned-to-tags-data-rerun.csv'
 );
 
 // Create Keep-Alive HTTP agents

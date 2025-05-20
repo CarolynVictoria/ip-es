@@ -1,8 +1,7 @@
-// frontend/src/components/FunderCard.js
-
 import ExpandableText, { DEFAULT_EXPANDABLE_LIMIT } from './ExpandableText';
 import { useEffect, useState } from 'react';
-import { fetchNonprofitData } from '../clientApi'; // adjust if path differs
+import { fetchNonprofitData } from '../clientApi';
+import { ISSUE_AREA_URLS, LOCATION_URLS } from '../data/tagUrlMapping';
 
 function FunderCard({ hit, fetch990 = true }) {
 	const sortedIssueAreas = hit.issueAreas
@@ -62,7 +61,7 @@ function FunderCard({ hit, fetch990 = true }) {
 							</h3>
 							<ExpandableText
 								text={hit.profile}
-								limit={500} // hardcoded 500 characters for Profile
+								limit={500}
 								showInlineLink={true}
 								linkUrl={`https://www.insidephilanthropy.com${hit.funderUrl}`}
 							/>
@@ -78,14 +77,60 @@ function FunderCard({ hit, fetch990 = true }) {
 								Issue Areas
 							</h3>
 							<div className='flex flex-wrap gap-2'>
-								{sortedIssueAreas.map((area, index) => (
-									<span
-										key={index}
-										className='bg-gray-300 text-gray-700 text-[11px] font-medium px-2 py-0.5 rounded-full'
-									>
-										{area}
-									</span>
-								))}
+								{sortedIssueAreas.map((area, index) => {
+									const url = ISSUE_AREA_URLS[area];
+									return url ? (
+										<a
+											key={index}
+											href={url}
+											target='_blank'
+											rel='noopener noreferrer'
+											className='bg-gray-300 text-blue-700 hover:underline text-[11px] font-medium px-2 py-0.5 rounded-full'
+										>
+											{area}
+										</a>
+									) : (
+										<span
+											key={index}
+											className='bg-gray-300 text-gray-700 text-[11px] font-medium px-2 py-0.5 rounded-full'
+										>
+											{area}
+										</span>
+									);
+								})}
+							</div>
+						</div>
+					)}
+					{/* Sidebar Box: Locations */}
+					{Array.isArray(hit.state) && hit.state.length > 0 && (
+						<div className='bg-gray-200 p-3 rounded shadow-sm self-start w-full'>
+							<h3 className='mb-2 text-sm font-bold text-gray-700 uppercase'>
+								Locations
+							</h3>
+							<div className='flex flex-wrap gap-2'>
+								{[...hit.state]
+									.sort((a, b) => a.localeCompare(b))
+									.map((location, index) => {
+										const url = LOCATION_URLS[location];
+										return url ? (
+											<a
+												key={index}
+												href={url}
+												target='_blank'
+												rel='noopener noreferrer'
+												className='bg-gray-300 text-blue-700 hover:underline text-[11px] font-medium px-2 py-0.5 rounded-full'
+											>
+												{location}
+											</a>
+										) : (
+											<span
+												key={index}
+												className='bg-gray-300 text-gray-700 text-[11px] font-medium px-2 py-0.5 rounded-full'
+											>
+												{location}
+											</span>
+										);
+									})}
 							</div>
 						</div>
 					)}

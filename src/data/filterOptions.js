@@ -14,6 +14,7 @@ export const ISSUE_AREAS = [
 	'Dance',
 	'Diseases',
 	'Early Childhood Education',
+	'Economic Development',
 	'Environmental Conservation',
 	'Film',
 	'Food Security',
@@ -50,7 +51,6 @@ export const ISSUE_AREAS = [
 	'Wall Street Donors',
 	'Wildlife Conservation',
 	'Women & Girls',
-	'Work & Opportunity',
 	'Writing',
 ];
 
