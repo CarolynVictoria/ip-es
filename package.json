@@ -31,6 +31,7 @@
 		"lucide-react": "^0.503.0",
 		"moment": "^2.30.1",
 		"node-fetch": "^3.3.2",
+		"pino": "^9.7.0",
 		"radix-ui": "^1.1.3",
 		"react": "^18.2.0",
 		"react-dom": "^18.2.0",
