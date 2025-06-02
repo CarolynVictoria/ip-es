@@ -1,7 +1,4 @@
 // clientApi.js
-
-// clientApi.js
-
 async function fetchSearchResults(
 	query,
 	{ issueAreas = [], locations = [] } = {},
@@ -9,9 +6,7 @@ async function fetchSearchResults(
 	exactMatch = false
 ) {
 	try {
-		const endpoint = useSemantic
-			? '/api/search/semantic'
-			: import.meta.env.VITE_SEARCH_API_URL;
+		const endpoint = useSemantic ? '/api/search/semantic' : '/api/search';
 
 		const res = await fetch(endpoint, {
 			method: 'POST',
@@ -34,7 +29,7 @@ async function fetchSearchResults(
 
 		const data = await res.json();
 
-		// ✅ Directly return the `results` array
+		// Directly return the `results` array
 		return { results: data.results || [] };
 	} catch (err) {
 		console.error('Search request failed:', err);

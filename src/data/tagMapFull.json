@@ -1,0 +1,657 @@
+{
+	"alabama-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": "https://www.insidephilanthropy.com/find-a-grant-places/alabama-grants"
+	},
+
+	"alaska-grants": { 
+		"type": "state",
+		"label": "Alaska",
+		"url": ""
+	},
+	
+	"arizona-grants": { 
+		"type": "state",
+		"label": "Arizona",
+		"url": ""
+	},
+	
+	"arkansas-grants": { 
+		"type": "state",
+		"label": "Arkansas",
+		"url": ""
+	},
+	
+	"bay-area-grants": { 
+		"type": "state",
+		"label": "Bay Area",
+		"url": ""
+	},
+	
+	"california-grants": { 
+		"type": "state",
+		"label": "California",
+		"url": ""
+	},
+	
+	"colorado-grants": { 
+		"type": "state",
+		"label": "Colorado",
+		"url": ""
+	},
+	
+	"connecticut-grants": { 
+		"type": "state",
+		"label": "Connecticut",
+		"url": ""
+	},
+	
+	"delaware-grants": { 
+		"type": "state",
+		"label": "Delaware",
+		"url": ""
+	},
+	
+	"florida-grants": { 
+		"type": "state",
+		"label": "Florida",
+		"url": ""
+	},
+	
+	"georgia-grants": { 
+		"type": "state",
+		"label": "Georgia",
+		"url": ""
+	},
+	
+	"grants-celebrity-foundations": { 
+		"type": "issueArea",
+		"label": "Celebrity",
+		"url": ""
+	},
+	
+	"grants-aging": { 
+		"type": "issueArea",
+		"label": "Aging",
+		"url": ""
+	},
+	
+	"grants-animals-rescue-welfare": { 
+		"type": "issueArea",
+		"label": "Animals",
+		"url": ""
+	},
+
+	"grants-arts-culture": { 
+		"type": "issueArea",
+		"label": "Arts & Culture",
+		"url": ""
+	},
+	
+	"grants-arts-education": { 
+		"type": "issueArea",
+		"label": "Arts Education",
+		"url": ""
+	},
+
+	"grants-civic-democracy": { 
+		"type": "issueArea",
+		"label": "Civic Engagement",
+		"url": ""
+	},
+	
+	"grants-for-climate-change": { 
+		"type": "issueArea",
+		"label": "Climate Change",
+		"url": ""
+	},
+	
+	"grants-college-access": { 
+		"type": "issueArea",
+		"label": "College Access",
+		"url": ""
+	},
+	
+	"grants-community-development": { 
+		"type": "issueArea",
+		"label": "Community Development",
+		"url": ""
+	},
+	
+	"grants-creative-writing": { 
+		"type": "issueArea",
+		"label": "Writing",
+		"url": ""
+	},
+	
+	"grants-criminal-justice": { 
+		"type": "issueArea",
+		"label": "Criminal Justice",
+		"url": ""
+	},
+	
+	"grants-dance": { 
+		"type": "issueArea",
+		"label": "Dance",
+		"url": ""
+	},
+	
+	"grants-disaster-preparedness": { 
+		"type": "issueArea",
+		"label": "Humanitarian Aid",
+		"url": ""
+	},
+	
+	"grants-diseases": { 
+		"type": "issueArea",
+		"label": "Diseases",
+		"url": ""
+	},
+	
+	"grants-early-childhood-education": { 
+		"type": "issueArea",
+		"label": "Early Childhood Education",
+		"url": ""
+	},
+	
+	"grants-economic-development": { 
+		"type": "issueArea",
+		"label": "Economic Development",
+		"url": ""
+	},
+	
+	"grants-environmental-conservation": { 
+		"type": "issueArea",
+		"label": "Environmental Conservation",
+		"url": ""
+	},
+	
+	"grants-film": { 
+		"type": "issueArea",
+		"label": "Film",
+		"url": ""
+	},
+	
+	"grants-food-security": { 
+		"type": "issueArea",
+		"label": "Food Security",
+		"url": ""
+	},
+	
+	"grants-global-health": { 
+		"type": "issueArea",
+		"label": "Global Health",
+		"url": ""
+	},
+	
+	"grants-global-security": { 
+		"type": "issueArea",
+		"label": "Global Security",
+		"url": ""
+	},
+	
+	"grants-higher-education": { 
+		"type": "issueArea",
+		"label": "Higher Education",
+		"url": ""
+	},
+	
+	"grants-housing-homelessness": { 
+		"type": "issueArea",
+		"label": "Housing",
+		"url": ""
+	},
+	
+	"grants-human-rights": { 
+		"type": "issueArea",
+		"label": "Human Rights",
+		"url": ""
+	},
+	
+	"grants-humanities-research": { 
+		"type": "issueArea",
+		"label": "Humanities Research",
+		"url": ""
+	},
+	
+	"grants-immigrants-refugees": { 
+		"type": "issueArea",
+		"label": "Immigrants & Refugees",
+		"url": ""
+	},
+	
+	"grants-indigenous-rights-justice": { 
+		"type": "issueArea",
+		"label": "Indigenous Rights",
+		"url": ""
+	},
+	
+	"grants-international-development": { 
+		"type": "issueArea",
+		"label": "International Development",
+		"url": ""
+	},
+	
+	"grants-jewish-foundations": { 
+		"type": "issueArea",
+		"label": "Jewish Foundations",
+		"url": ""
+	},
+	
+	"grants-journalism-media": { 
+		"type": "issueArea",
+		"label": "Journalism",
+		"url": ""
+	},
+	
+	"grants-k-12-education": { 
+		"type": "issueArea",
+		"label": "K-12 Education",
+		"url": ""
+	},
+	
+	"grants-lgbtq": { 
+		"type": "issueArea",
+		"label": "LGBTQ",
+		"url": ""
+	},
+	
+	"grants-marine-conservation": { 
+		"type": "issueArea",
+		"label": "Marine Conservation",
+		"url": ""
+	},
+	
+	"grants-mental-health": { 
+		"type": "issueArea",
+		"label": "Mental Health",
+		"url": ""
+	},
+	
+	"grants-music": { 
+		"type": "issueArea",
+		"label": "Music",
+		"url": ""
+	},
+	
+	"grants-neuroscience-cell-research": { 
+		"type": "issueArea",
+		"label": "Neuroscience",
+		"url": ""
+	},
+	
+	"grants-public-health": { 
+		"type": "issueArea",
+		"label": "Public Health",
+		"url": ""
+	},
+	
+	"grants-for-racial-equity-justice": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-for-racial-justice": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-reproductive-rights": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-for-rural-communities": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-science-research": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-stem-education": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-sustainable-agriculture": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-theater": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-veterans": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-violence-prevention": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-visual-arts": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-wildlife-conservation": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-women-girls": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-for-women-and-girls": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-work-opportunity": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-for-youth-development": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-jewish-foundations": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-progressive-funders": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-tech-philanthropists": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"grants-wall-street-donors": { 
+		"type": "issueArea",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"idaho-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"illinois-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"indiana-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"iowa-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"kansas-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"kentucky-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"louisiana-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"maine-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"maryland-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"massachusetts-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"michigan-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"minnesota-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"mississippi-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"missouri-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"montana-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"nebraska-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"neuroscience-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"nevada-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"new-hampshire-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"new-jersey-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"new-mexico-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"new-york-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"north-carolina-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"north-dakota-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"ohio-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"oklahoma-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"oregon-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"pennsylvania-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"rhode-island-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"south-carolina-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"south-dakota-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"southern-california-grants": "region",
+	"tennessee-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"texas-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"utah-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"vermont-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"virginia-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"washington-dc-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"washington-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"west-virginia-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"wisconsin-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+	"wyoming-grants": { 
+		"type": "state",
+		"label": "Alabama",
+		"url": ""
+	},
+	
+}

@@ -1,3 +1,7 @@
+//backend/services/searchService.js
+// Description: Provides functions for search queries on an Elasticsearch index.
+// It includes functions for both standard and semantic search queries.
+// It uses the Elasticsearch client to interact with the Elasticsearch service.
 import { Client } from '@elastic/elasticsearch';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -15,31 +19,6 @@ const client = new Client({
 		apiKey: process.env.ELASTICSEARCH_API_KEY,
 	},
 });
-
-// temp avoid major donor profiles
-const forbiddenIssueAreas = [
-	'Celebrity',
-	'Wall Street Donors',
-	'Tech Philanthropists',
-];
-
-// cvm added 5/6/2025 to process filters
-function getIndexName(useSemantic, filters) {
-	const hasLocationFilter =
-		filters.locations &&
-		Array.isArray(filters.locations) &&
-		filters.locations.length > 0;
-
-	if (useSemantic) {
-		return hasLocationFilter
-			? 'funders-grant-finder-places-semantic'
-			: 'funders-grant-finder-semantic';
-	} else {
-		return hasLocationFilter
-			? 'funders-grant-finder-places'
-			: 'funders-grant-finder-issues';
-	}
-}
 
 async function runSearchQuery(rawQuery, filters = {}) {
 	try {
@@ -77,11 +56,13 @@ async function runSearchQuery(rawQuery, filters = {}) {
 			filterClauses.push({ terms: { issueAreas: filters.issueAreas } });
 		}
 		if (filters.locations?.length) {
-			filterClauses.push({ terms: { state: filters.locations } });
+			filterClauses.push({
+				terms: { 'geoLocation.states': filters.locations },
+			});
 		}
 
 		const esQuery = {
-			index: getIndexName(false, filters),
+			index: 'funders',
 			size: 200,
 			_source: [
 				'funderName',
@@ -90,7 +71,7 @@ async function runSearchQuery(rawQuery, filters = {}) {
 				'ipTake',
 				'profile',
 				'issueAreas',
-				'state',
+				'geoLocation.states',
 			],
 			query: {
 				bool: {
@@ -118,14 +99,6 @@ async function runSearchQuery(rawQuery, filters = {}) {
 		for (const hit of hits.hits) {
 			const source = hit._source;
 			const highlight = hit.highlight || {};
-
-			// Apply the forbidden issue areas filter
-			const hasOnlyForbiddenIssueAreas =
-				source.issueAreas &&
-				source.issueAreas.length > 0 &&
-				source.issueAreas.every((area) => forbiddenIssueAreas.includes(area));
-
-			if (hasOnlyForbiddenIssueAreas) continue;
 
 			results.push({
 				id: hit._id,
@@ -163,7 +136,7 @@ async function runSemanticSearchQuery(rawQuery, filters = {}) {
 
 		if (filters.locations?.length) {
 			filterClauses.push({
-				terms: { state: filters.locations },
+				terms: { 'geoLocation.states': filters.locations },
 			});
 		}
 
@@ -172,7 +145,7 @@ async function runSemanticSearchQuery(rawQuery, filters = {}) {
 		}
 
 		const esQuery = {
-			index: getIndexName(true, filters),
+			index: 'funders-semantic',
 			size: 200,
 			_source: [
 				'funderName',
@@ -229,14 +202,6 @@ async function runSemanticSearchQuery(rawQuery, filters = {}) {
 		for (const hit of hits.hits) {
 			const source = hit._source;
 
-			// Apply the forbidden issue areas filter
-			const hasOnlyForbiddenIssueAreas =
-				source.issueAreas &&
-				source.issueAreas.length > 0 &&
-				source.issueAreas.every((area) => forbiddenIssueAreas.includes(area));
-
-			if (hasOnlyForbiddenIssueAreas) continue;
-
 			results.push({
 				id: hit._id,
 				funderName: source.funderName,
@@ -245,9 +210,9 @@ async function runSemanticSearchQuery(rawQuery, filters = {}) {
 				overview: source.overview?.text || '',
 				profile: source.profile?.text || '',
 				issueAreas: source.issueAreas || [],
-				state: source.state || [],
+				state: source.geoLocation?.states || [],
 				score: hit._score,
-				matchType: 'semantic', // Optional if you want to differentiate in UI
+				matchType: 'semantic',
 			});
 		}
 

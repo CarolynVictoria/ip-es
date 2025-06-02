@@ -102,38 +102,39 @@ function FunderCard({ hit, fetch990 = true }) {
 						</div>
 					)}
 					{/* Sidebar Box: Locations */}
-					{Array.isArray(hit.state) && hit.state.length > 0 && (
-						<div className='bg-gray-200 p-3 rounded shadow-sm self-start w-full'>
-							<h3 className='mb-2 text-sm font-bold text-gray-700 uppercase'>
-								Locations
-							</h3>
-							<div className='flex flex-wrap gap-2'>
-								{[...hit.state]
-									.sort((a, b) => a.localeCompare(b))
-									.map((location, index) => {
-										const url = LOCATION_URLS[location];
-										return url ? (
-											<a
-												key={index}
-												href={url}
-												target='_blank'
-												rel='noopener noreferrer'
-												className='bg-gray-300 text-blue-700 hover:underline text-[11px] font-medium px-2 py-0.5 rounded-full'
-											>
-												{location}
-											</a>
-										) : (
-											<span
-												key={index}
-												className='bg-gray-300 text-gray-700 text-[11px] font-medium px-2 py-0.5 rounded-full'
-											>
-												{location}
-											</span>
-										);
-									})}
+					{Array.isArray(hit.geoLocation?.states) &&
+						hit.geoLocation.states.length > 0 && (
+							<div className='bg-gray-200 p-3 rounded shadow-sm self-start w-full'>
+								<h3 className='mb-2 text-sm font-bold text-gray-700 uppercase'>
+									Locations
+								</h3>
+								<div className='flex flex-wrap gap-2'>
+									{[...hit.geoLocation.states]
+										.sort((a, b) => a.localeCompare(b))
+										.map((location, index) => {
+											const url = LOCATION_URLS[location];
+											return url ? (
+												<a
+													key={index}
+													href={url}
+													target='_blank'
+													rel='noopener noreferrer'
+													className='bg-gray-300 text-blue-700 hover:underline text-[11px] font-medium px-2 py-0.5 rounded-full'
+												>
+													{location}
+												</a>
+											) : (
+												<span
+													key={index}
+													className='bg-gray-300 text-gray-700 text-[11px] font-medium px-2 py-0.5 rounded-full'
+												>
+													{location}
+												</span>
+											);
+										})}
+								</div>
 							</div>
-						</div>
-					)}
+						)}
 
 					{/* 990 Data Card */}
 					{fetch990 && nonprofitStats && (

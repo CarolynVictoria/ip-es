@@ -25,10 +25,17 @@ function App() {
 			return;
 
 		setLoading(true);
-		const data = await fetchSearchResults(query, {
-			issueAreas: selectedIssueAreas,
-			locations: selectedLocations,
-		});
+
+		// new for match-all logic
+		const data = await fetchSearchResults(
+			query,
+			{
+				issueAreas: selectedIssueAreas,
+				locations: selectedLocations,
+			},
+			false, // useSemantic = false
+			matchAll // exact match flag
+		);
 		setResults(data?.results || []);
 		setLoading(false);
 	};
@@ -67,7 +74,8 @@ function App() {
 				issueAreas: selectedIssueAreas,
 				locations: selectedLocations,
 			},
-			true
+			true, // useSemantic = true
+			matchAll // exact match flag
 		);
 		setSemanticResults(res?.results || []);
 		console.log('Semantic results:', res?.results);

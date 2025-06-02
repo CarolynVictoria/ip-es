@@ -52,6 +52,6 @@ export const issueAreaMap = {
 	'find-a-grant/fundraising-for-the-fine-arts': 'Visual Arts',
 	'find-a-grant/wall-street-philanthropy': 'Wall Street Donors',
 	'find-a-grant/grants-for-wildlife-conservation': 'Wildlife Conservation',
-	'find-a-grant/work-opportunity-grants': 'Work & Opportunity',
-	'find-a-grant/grants-for-creative-writing': 'Writing',
+	'find-a-grant/work-opportunity-grants': 'Economic Development',
+	'find-a-grant/grants-for-creative-writing': 'Creative Writing',
 };
