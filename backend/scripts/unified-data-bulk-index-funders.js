@@ -23,56 +23,21 @@ const logger = pino(pino.destination(path.join(logDir, 'index.log')));
 const client = new Client({
 	cloud: { id: process.env.ELASTICSEARCH_CLOUD_ID },
 	auth: { apiKey: process.env.ELASTICSEARCH_API_KEY },
-	requestTimeout: 120000, // 2 minutes
+	requestTimeout: 120000,
 });
 
 const INDEX = process.env.ELASTICSEARCH_INDEX || 'funders';
 const DATA_PATH = path.join(logDir, 'funder-docs.json');
-const TAG_TYPE_MAP_PATH = path.resolve(
-	__dirname,
-	'../../src/data/tagTypeMapping.json'
-);
 
-const tagTypeMap = JSON.parse(fs.readFileSync(TAG_TYPE_MAP_PATH, 'utf-8'));
-
-function parseTagsToLocationFields(tags, funderTitle = 'unknown') {
-	const issueAreas = [];
-	const states = new Set();
-	const regions = new Set();
-
-	for (const tag of tags) {
-		const type = tagTypeMap[tag];
-
-		if (!type) {
-			logger.warn(`Unrecognized tag "${tag}" in funder: ${funderTitle}`);
-
-			continue;
-		}
-
-		if (type === 'issueArea') {
-			issueAreas.push(tag);
-		} else if (type === 'state') {
-			states.add(tag);
-		} else if (type === 'region') {
-			regions.add(tag);
-			// infer state from known regions (optional logic)
-			if (tag === 'bay-area-grants' || tag === 'southern-california-grants') {
-				states.add('california-grants');
-			} else if (tag === 'washington-dc-grants') {
-				states.add('district-of-columbia');
-			}
-		}
-	}
-
+// -- Maps raw "places" to geoLocation.states (can expand as needed) --
+function buildGeoLocationFromDoc(doc) {
 	return {
-		issueAreas,
-		geoLocation: {
-			states: [...states],
-			regions: [...regions],
-		},
+		states: Array.isArray(doc.places) ? doc.places : [],
+		// You can expand this function if you want to set countries/regions/cities
 	};
 }
 
+// -- Main indexer --
 async function bulkIndexFunders() {
 	const raw = fs.readFileSync(DATA_PATH, 'utf-8');
 	const docs = JSON.parse(raw);
@@ -82,9 +47,16 @@ async function bulkIndexFunders() {
 	const body = [];
 
 	for (const doc of docs) {
-		const { title, url, tags, overview, ipTake, profile } = doc;
+		const {
+			title,
+			url,
+			overview = '',
+			ipTake = '',
+			profile = '',
+			issueAreas = [],
+		} = doc;
 
-		const { issueAreas, geoLocation } = parseTagsToLocationFields(tags, title);
+		const geoLocation = buildGeoLocationFromDoc(doc);
 
 		logger.info(`Indexing: ${title}`);
 
@@ -92,11 +64,11 @@ async function bulkIndexFunders() {
 		body.push({
 			funderName: title,
 			funderUrl: url,
-			issueAreas,
-			geoLocation,
 			overview,
 			ipTake,
 			profile,
+			issueAreas,
+			geoLocation,
 		});
 	}
 
@@ -111,7 +83,7 @@ async function bulkIndexFunders() {
 		console.error('Some documents failed to index.');
 	} else {
 		logger.info(`Successfully indexed ${docs.length} documents to ${INDEX}`);
-		console.log(`✅ Indexed ${docs.length} documents.`);
+		console.log(`Indexed ${docs.length} documents.`);
 	}
 }
 

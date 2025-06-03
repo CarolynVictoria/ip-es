@@ -16,6 +16,19 @@ const __dirname = path.dirname(__filename);
 // --- Load .env ---
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+// --- Read and parse the unified filter map as array ---
+const rawMapArr = JSON.parse(
+	fs.readFileSync(
+		path.join(__dirname, '../../src/data/unifiedFilterMap.json'),
+		'utf-8'
+	)
+);
+
+// Convert unifiedFilterMap array to object
+const unifiedFilterMap = Object.fromEntries(
+	rawMapArr.map((obj) => [obj.tag, obj])
+);
+
 // --- Logging ---
 const logDir = path.resolve(__dirname, '../output');
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
@@ -23,14 +36,14 @@ const logger = pino(pino.destination(path.join(logDir, 'crawl.log')));
 
 // --- Config ---
 const BASE_URL = 'https://www.insidephilanthropy.com';
-const MAX_PROFILES = 6000;
+const MAX_PROFILES = 10000; // for testing, set to Infinity for full crawl
 const OUTPUT_PATH = path.join(logDir, 'funder-docs.jsonl');
 
 // --- Utilities ---
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // --- Fetch funder profile URLs ---
-async function getFunderProfileUrls(limit = Infinity) {
+async function getFunderProfileUrls(limit = 10000) {
 	const urls = [];
 	let page = 1;
 
@@ -82,6 +95,28 @@ function extractTags($) {
 		.split(/\s+/)
 		.filter((cls) => cls.startsWith('tag-'))
 		.map((tag) => tag.replace('tag-', ''));
+}
+
+// Map tags to unified filter names (refactored)
+const seenUnmappedTags = new Set();
+function mapTagsToFilters(tags, filterMap) {
+	const issueAreas = new Set();
+	const places = new Set();
+
+	for (const tag of tags) {
+		if (filterMap[tag]) {
+			const { filterType, filterName } = filterMap[tag];
+			if (filterType === 'issueAreas') issueAreas.add(filterName);
+			if (filterType === 'location') places.add(filterName);
+		} else if (!seenUnmappedTags.has(tag)) {
+			logger.warn(`Unmapped tag: ${tag}`);
+			seenUnmappedTags.add(tag);
+		}
+	}
+	return {
+		issueAreas: Array.from(issueAreas),
+		places: Array.from(places),
+	};
 }
 
 // --- Extract content sections ---
@@ -155,10 +190,12 @@ async function crawlFunders() {
 			const $ = load(res.data);
 			const title = $('h1.entry-title').text().trim();
 			const tags = extractTags($);
+			const filterData = mapTagsToFilters(tags, unifiedFilterMap);
 			const bodyText = $('article .entry-content')
 				.text()
-				.replace(/\s+/g, ' ')
+				.replace(/\r\n?/g, '\n')
 				.trim();
+
 			const sections = extractSectionsFromBodyContent(bodyText);
 
 			const entry = {
@@ -168,6 +205,8 @@ async function crawlFunders() {
 				overview: sections.overview,
 				ipTake: sections.ipTake,
 				profile: sections.profile,
+				issueAreas: filterData.issueAreas,
+				places: filterData.places,
 			};
 
 			stream.write(JSON.stringify(entry) + '\n');
