@@ -8,9 +8,21 @@ const router = express.Router();
 
 // Keyword search
 router.post('/', async (req, res) => {
-	const { query = '', filters = {} } = req.body;
+	const {
+		query = '',
+		filters = {},
+		searchType = 'any', // <--- new
+		funderNameOnly = false, // <--- new
+	} = req.body;
 
-	console.log('Received filters:', filters);
+	console.log(
+		'Received filters:',
+		filters,
+		'searchType:',
+		searchType,
+		'funderNameOnly:',
+		funderNameOnly
+	);
 
 	if (
 		typeof query !== 'string' ||
@@ -22,7 +34,12 @@ router.post('/', async (req, res) => {
 	}
 
 	try {
-		const results = await runSearchQuery(query, filters);
+		const results = await runSearchQuery(
+			query,
+			filters,
+			searchType, // <--- new
+			funderNameOnly // <--- new
+		);
 		res.json(results);
 	} catch (error) {
 		console.error('Search error:', error);
@@ -30,7 +47,7 @@ router.post('/', async (req, res) => {
 	}
 });
 
-// Semantic search
+// Semantic search (optional—update if/when you add options there)
 router.post('/semantic', async (req, res) => {
 	const { query = '', filters = {} } = req.body;
 

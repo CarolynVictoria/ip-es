@@ -6,6 +6,10 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import pino from 'pino';
 import { Client } from '@elastic/elasticsearch';
+//import unifiedFilterMap from '../../src/data/unifiedFilterMap.json' assert { type: 'json' };
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const unifiedFilterMap = require('../../src/data/unifiedFilterMap.json');
 
 // --- Setup __dirname ---
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +32,18 @@ const client = new Client({
 
 const INDEX = process.env.ELASTICSEARCH_INDEX || 'funders';
 const DATA_PATH = path.join(logDir, 'funder-docs.json');
+
+// Build lookup maps: filterName -> tag (slug) for each type
+const issueAreaNameToSlug = Object.fromEntries(
+	unifiedFilterMap
+		.filter((item) => item.filterType === 'issueAreas')
+		.map((item) => [item.filterName, item.tag])
+);
+const locationNameToSlug = Object.fromEntries(
+	unifiedFilterMap
+		.filter((item) => item.filterType === 'location')
+		.map((item) => [item.filterName, item.tag])
+);
 
 // -- Maps raw "places" to geoLocation.states (can expand as needed) --
 function buildGeoLocationFromDoc(doc) {
@@ -61,14 +77,28 @@ async function bulkIndexFunders() {
 		logger.info(`Indexing: ${title}`);
 
 		body.push({ index: { _index: INDEX } });
+		// Map issueAreas and geoLocation.states to slugs (if needed)
+		const issueAreasSlugs = Array.isArray(issueAreas)
+			? issueAreas
+					.map((a) => issueAreaNameToSlug[a] || a) // fallback to raw if no match
+					.filter(Boolean)
+			: [];
+
+		// geoLocation.states (places) as slugs
+		const geoLocationSlugs = Array.isArray(doc.places)
+			? doc.places
+					.map((p) => locationNameToSlug[p] || p) // fallback to raw if no match
+					.filter(Boolean)
+			: [];
+
 		body.push({
 			funderName: title,
 			funderUrl: url,
 			overview,
 			ipTake,
 			profile,
-			issueAreas,
-			geoLocation,
+			issueAreas: issueAreasSlugs,
+			geoLocation: { states: geoLocationSlugs },
 		});
 	}
 

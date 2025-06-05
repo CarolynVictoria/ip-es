@@ -3,7 +3,8 @@ async function fetchSearchResults(
 	query,
 	{ issueAreas = [], locations = [] } = {},
 	useSemantic = false,
-	exactMatch = false
+	searchType = 'any', // <-- updated
+	funderNameOnly = false // <-- updated
 ) {
 	try {
 		const endpoint = useSemantic ? '/api/search/semantic' : '/api/search';
@@ -19,7 +20,8 @@ async function fetchSearchResults(
 					issueAreas,
 					locations,
 				},
-				exactMatch,
+				searchType, // <-- send to backend
+				funderNameOnly, // <-- send to backend
 			}),
 		});
 
@@ -29,7 +31,6 @@ async function fetchSearchResults(
 
 		const data = await res.json();
 
-		// Directly return the `results` array
 		return { results: data.results || [] };
 	} catch (err) {
 		console.error('Search request failed:', err);

@@ -1,3 +1,5 @@
+// src/components/MultiSelectCombobox.jsx
+
 import { useState } from 'react';
 import { Combobox } from '@headlessui/react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -10,17 +12,20 @@ function MultiSelectCombobox({ label, options, selected, onChange }) {
 		query === ''
 			? []
 			: options.filter((option) =>
-					option.toLowerCase().includes(query.toLowerCase())
+					option.label.toLowerCase().includes(query.toLowerCase())
 			  );
 
 	const handleSelect = (option) => {
-		if (selected.includes(option)) {
-			onChange(selected.filter((item) => item !== option));
+		const val = option.value;
+		if (selected.includes(val)) {
+			onChange(selected.filter((item) => item !== val));
 		} else {
-			onChange([...selected, option]);
+			onChange([...selected, val]);
 		}
-		setQuery(''); // Clear typing field after selecting
+		setQuery('');
 	};
+
+	const getOptionByValue = (val) => options.find((opt) => opt.value === val);
 
 	const handleInputChange = (e) => {
 		setQuery(e.target.value);
@@ -35,21 +40,24 @@ function MultiSelectCombobox({ label, options, selected, onChange }) {
 
 			{/* Selected Pills */}
 			<div className='flex flex-wrap gap-1 mb-2'>
-				{selected.map((item) => (
-					<span
-						key={item}
-						className='flex items-center bg-blue-100 text-blue-800 text-sm rounded-full px-2 py-1'
-					>
-						{item}
-						<button
-							type='button'
-							onClick={() => handleSelect(item)}
-							className='ml-1 text-blue-600 hover:text-blue-800'
+				{selected.map((val) => {
+					const option = getOptionByValue(val);
+					return (
+						<span
+							key={val}
+							className='flex items-center bg-blue-100 text-blue-800 text-sm rounded-full px-2 py-1'
 						>
-							×
-						</button>
-					</span>
-				))}
+							{option ? option.label : val}
+							<button
+								type='button'
+								onClick={() => handleSelect(option)}
+								className='ml-1 text-blue-600 hover:text-blue-800'
+							>
+								×
+							</button>
+						</span>
+					);
+				})}
 			</div>
 
 			{/* Search Input */}
@@ -63,16 +71,16 @@ function MultiSelectCombobox({ label, options, selected, onChange }) {
 						value={query}
 					/>
 
-					{/* Only render dropdown when query is NOT empty */}
+					{/* Dropdown: only when query and there are filtered options */}
 					{query && filteredOptions.length > 0 && (
 						<ul className='absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm'>
 							{filteredOptions.map((option) => (
 								<li
-									key={option}
+									key={option.value}
 									onClick={() => handleSelect(option)}
 									className='cursor-pointer text-gray-700 hover:bg-blue-100 rounded px-2 py-1'
 								>
-									{option}
+									{option.label}
 								</li>
 							))}
 						</ul>
@@ -89,12 +97,12 @@ function MultiSelectCombobox({ label, options, selected, onChange }) {
 				{accordionOpen ? (
 					<>
 						<ChevronUp size={18} className='mr-1' />
-						Hide All {label}
+						Collapse {label}
 					</>
 				) : (
 					<>
 						<ChevronDown size={18} className='mr-1' />
-						Show All {label}
+						Show {label}
 					</>
 				)}
 			</button>
@@ -110,11 +118,11 @@ function MultiSelectCombobox({ label, options, selected, onChange }) {
 				<ul className='text-sm space-y-2'>
 					{options.map((option) => (
 						<li
-							key={option}
+							key={option.value}
 							onClick={() => handleSelect(option)}
 							className='cursor-pointer text-gray-700 hover:bg-blue-100 rounded px-2 py-1'
 						>
-							{option}
+							{option.label}
 						</li>
 					))}
 				</ul>

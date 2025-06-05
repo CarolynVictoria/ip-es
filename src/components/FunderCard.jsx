@@ -1,34 +1,71 @@
 import ExpandableText, { DEFAULT_EXPANDABLE_LIMIT } from './ExpandableText';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { fetchNonprofitData } from '../clientApi';
-import { ISSUE_AREA_URLS, LOCATION_URLS } from '../data/tagUrlMapping';
+import unifiedFilterMap from '../data/unifiedFilterMap.json';
 
-function FunderCard({ hit, fetch990 = true }) {
+function buildLookupMap(filterMap, filterType) {
+	return filterMap
+		.filter((item) => item.filterType === filterType)
+		.reduce((acc, item) => {
+			acc[item.tag] = { name: item.filterName, url: item.filterUrl };
+			return acc;
+		}, {});
+}
+
+function FunderCard({ hit, fetch990 = true, topScore = 1 }) {
+	// normalize	the score to a 0-100 range
+	const normalizedScore =
+		typeof hit.score === 'number' && topScore
+			? Math.round((hit.score / topScore) * 100)
+			: null;
+
 	const sortedIssueAreas = hit.issueAreas
 		? [...hit.issueAreas].sort((a, b) => a.localeCompare(b))
 		: [];
 
 	const [nonprofitStats, setNonprofitStats] = useState(null);
 
+	// UseMemo so the maps are built once, not every render
+	const issueAreaMap = useMemo(
+		() => buildLookupMap(unifiedFilterMap, 'issueAreas'),
+		[]
+	);
+	const locationMap = useMemo(
+		() => buildLookupMap(unifiedFilterMap, 'location'),
+		[]
+	);
+
 	useEffect(() => {
 		if (fetch990 && hit.funderName) {
-			// Adjusted fetch logic to handle relaxed query matching
 			fetchNonprofitData(hit.funderName)
 				.then(setNonprofitStats)
 				.catch((err) => console.error('990 data fetch failed:', err));
 		}
 	}, [hit.funderName, fetch990]);
 
+	// log for debugging
+	console.log('Funder:', hit.funderName);
+	console.log('Issue Areas from hit:', sortedIssueAreas);
+	console.log('States from hit:', hit.geoLocation?.states);
+
 	return (
 		<li className='border rounded overflow-hidden shadow bg-white'>
 			{/* Top Colored Header */}
 			<div className='bg-blue-100 px-6 py-3'>
 				<h2 className='text-lg uppercase font-semibold text-gray-800'>
-					{hit.funderName}
+					<a
+						href={hit.funderUrl}
+						target='_blank'
+						rel='noopener noreferrer'
+						className='hover:underline text-blue-700'
+					>
+						{hit.funderName}
+					</a>
 				</h2>
-				{typeof hit.score === 'number' && (
-					<div className='text-xs text-gray-400 italic mt-1'>
-						Relevance score: {hit.score.toFixed(2)}
+
+				{typeof normalizedScore === 'number' && !isNaN(normalizedScore) && (
+					<div className='text-xs text-slate-600 italic mt-1'>
+						Relevance: {normalizedScore}%
 					</div>
 				)}
 			</div>
@@ -40,9 +77,19 @@ function FunderCard({ hit, fetch990 = true }) {
 					{hit.overview && (
 						<div className='mt-2'>
 							<h3 className='text-sm uppercase font-semibold'>Overview</h3>
-							<p className='text-gray-500 italic mt-2'>{hit.overview}</p>
+							{!hit.ipTake && !hit.profile ? (
+								<ExpandableText
+									text={hit.overview}
+									limit={350}
+									showInlineLink={true}
+									linkUrl={hit.funderUrl}
+								/>
+							) : (
+								<p className='text-gray-500 italic mt-2'>{hit.overview}</p>
+							)}
 						</div>
 					)}
+
 					{/* IP Take Content */}
 					{hit.ipTake && (
 						<div className='mt-4'>
@@ -61,9 +108,9 @@ function FunderCard({ hit, fetch990 = true }) {
 							</h3>
 							<ExpandableText
 								text={hit.profile}
-								limit={500}
+								limit={350}
 								showInlineLink={true}
-								linkUrl={`https://www.insidephilanthropy.com${hit.funderUrl}`}
+								linkUrl={hit.funderUrl}
 							/>
 						</div>
 					)}
@@ -77,9 +124,19 @@ function FunderCard({ hit, fetch990 = true }) {
 								Issue Areas
 							</h3>
 							<div className='flex flex-wrap gap-2'>
-								{sortedIssueAreas.map((area, index) => {
-									const url = ISSUE_AREA_URLS[area];
-									return url ? (
+								{sortedIssueAreas.map((tag, index) => {
+									console.log(
+										'Issue area tag:',
+										tag,
+										'lookup:',
+										issueAreaMap[tag]
+									);
+									const { name, url } = issueAreaMap[tag] || {
+										name: tag,
+										url: '',
+									};
+									const isLink = url && url !== 'n/a';
+									return isLink ? (
 										<a
 											key={index}
 											href={url}
@@ -87,14 +144,14 @@ function FunderCard({ hit, fetch990 = true }) {
 											rel='noopener noreferrer'
 											className='bg-gray-300 text-blue-700 hover:underline text-[11px] font-medium px-2 py-0.5 rounded-full'
 										>
-											{area}
+											{name}
 										</a>
 									) : (
 										<span
 											key={index}
 											className='bg-gray-300 text-gray-700 text-[11px] font-medium px-2 py-0.5 rounded-full'
 										>
-											{area}
+											{name}
 										</span>
 									);
 								})}
@@ -104,38 +161,47 @@ function FunderCard({ hit, fetch990 = true }) {
 					{/* Sidebar Box: Locations */}
 					{Array.isArray(hit.geoLocation?.states) &&
 						hit.geoLocation.states.length > 0 && (
-							<div className='bg-gray-200 p-3 rounded shadow-sm self-start w-full'>
+							<div className='bg-slate-100 p-3 rounded shadow-sm self-start w-full bg-'>
 								<h3 className='mb-2 text-sm font-bold text-gray-700 uppercase'>
 									Locations
 								</h3>
 								<div className='flex flex-wrap gap-2'>
 									{[...hit.geoLocation.states]
 										.sort((a, b) => a.localeCompare(b))
-										.map((location, index) => {
-											const url = LOCATION_URLS[location];
-											return url ? (
+										.map((tag, index) => {
+											console.log(
+												'Location tag:',
+												tag,
+												'lookup:',
+												locationMap[tag]
+											);
+											const { name, url } = locationMap[tag] || {
+												name: tag,
+												url: '',
+											};
+											const isLink = url && url !== 'n/a';
+											return isLink ? (
 												<a
 													key={index}
 													href={url}
 													target='_blank'
 													rel='noopener noreferrer'
-													className='bg-gray-300 text-blue-700 hover:underline text-[11px] font-medium px-2 py-0.5 rounded-full'
+													className='bg-slate-200 text-blue-700 hover:underline text-[11px] font-medium px-2 py-0.5 rounded-full'
 												>
-													{location}
+													{name}
 												</a>
 											) : (
 												<span
 													key={index}
 													className='bg-gray-300 text-gray-700 text-[11px] font-medium px-2 py-0.5 rounded-full'
 												>
-													{location}
+													{name}
 												</span>
 											);
 										})}
 								</div>
 							</div>
 						)}
-
 					{/* 990 Data Card */}
 					{fetch990 && nonprofitStats && (
 						<div className='bg-green-100 p-3 rounded shadow-sm self-start w-full'>

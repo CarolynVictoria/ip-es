@@ -1,3 +1,10 @@
+// SearchInput.jsx
+// Component for debounced search input with Search and Clear buttons.
+// - Triggers handleSearch 300ms after user stops typing (debounce).
+// - Allows search via button or Enter key.
+// - "Clear" button empties input and returns focus to the field.
+// Expects parent to manage query state and provide handler functions.
+
 import { useRef, useEffect } from 'react';
 
 function SearchInput({ query, setQuery, handleSearch, handleClear }) {

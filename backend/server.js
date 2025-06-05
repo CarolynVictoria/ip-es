@@ -25,6 +25,14 @@ app.use('/api/search', searchRouter);
 
 app.use('/api/nonprofit-data', nonprofitDataRoutes);
 
+// Serve static files from the Vite build
+app.use(express.static(path.join(__dirname, '../../dist')));
+
+// For any other route, send back index.html (for React Router)
+app.get('*', (req, res) => {
+	res.sendFile(path.join(__dirname, '../../dist/index.html'));
+});
+
 app.listen(PORT, () => {
 	console.log(`Backend server running on port ${PORT}`);
 });
