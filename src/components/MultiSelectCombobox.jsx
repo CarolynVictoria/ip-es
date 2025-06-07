@@ -39,7 +39,7 @@ function MultiSelectCombobox({ label, options, selected, onChange }) {
 			</div>
 
 			{/* Selected Pills */}
-			<div className='flex flex-wrap gap-1 mb-2'>
+			{/* <div className='flex flex-wrap gap-1 mb-2'>
 				{selected.map((val) => {
 					const option = getOptionByValue(val);
 					return (
@@ -58,7 +58,7 @@ function MultiSelectCombobox({ label, options, selected, onChange }) {
 						</span>
 					);
 				})}
-			</div>
+			</div> */}
 
 			{/* Search Input */}
 			<Combobox as='div'>

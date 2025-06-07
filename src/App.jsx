@@ -4,6 +4,21 @@ import SearchInput from './components/SearchInput';
 import FunderList from './components/FunderList';
 import FilterPanel from './components/FilterPanel';
 import SearchOptions from './components/SearchOptions';
+import SelectedFiltersBox from './components/SelectedFiltersBox';
+import unifiedFilterMap from './data/unifiedFilterMap.json';
+
+function getOptionsByType(filterMap, type) {
+	return filterMap
+		.filter((item) => item.filterType === type)
+		.map((item) => ({
+			value: item.tag,
+			label: item.filterName,
+			filterUrl: item.filterUrl,
+		}));
+}
+
+const issueAreaOptions = getOptionsByType(unifiedFilterMap, 'issueAreas');
+const locationOptions = getOptionsByType(unifiedFilterMap, 'location');
 
 function App() {
 	const [query, setQuery] = useState('');
@@ -122,6 +137,20 @@ function App() {
 		setLoading(false);
 	};
 
+	const selectedFilters = {
+		'Issue Area': selectedIssueAreas,
+		Location: selectedLocations,
+	};
+
+	const handleRemoveFilter = (type, value) => {
+		if (type === 'Issue Area') {
+			setSelectedIssueAreas((prev) => prev.filter((v) => v !== value));
+		}
+		if (type === 'Location') {
+			setSelectedLocations((prev) => prev.filter((v) => v !== value));
+		}
+	};
+
 	return (
 		<div className='min-h-screen p-6 bg-gray-50'>
 			<h1 className='text-2xl font-bold mb-6'>Grant Finder Search</h1>
@@ -149,10 +178,17 @@ function App() {
 					funderNameOnly={funderNameOnly}
 					setFunderNameOnly={setFunderNameOnly}
 				/>
+				{/* Selected Filters Box: show above the filter panel */}
+				<SelectedFiltersBox
+					selectedFilters={selectedFilters}
+					onRemove={handleRemoveFilter}
+					filterOptions={{
+						'Issue Area': issueAreaOptions,
+						Location: locationOptions,
+					}}
+				/>
 				{/* Filter Panel in its own box */}
-				<div
-					className='rounded-md bg-gray-100 p-4 mt-6 mb-4'
-				>
+				<div className='rounded-md bg-gray-100 p-4 mt-6 mb-4'>
 					<FilterPanel
 						selectedIssueAreas={selectedIssueAreas}
 						onIssueAreaChange={handleIssueAreaChange}
