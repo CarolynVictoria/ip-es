@@ -152,8 +152,8 @@ function App() {
 	};
 
 	return (
-		<div className='min-h-screen p-6 bg-gray-50'>
-			<h1 className='text-2xl font-bold mb-6'>Grant Finder Search</h1>
+		<div className='min-h-screen p-12 bg-gray-50'>
+			{/* <h1 className='text-2xl font-bold mb-6'>Grant Finder Search</h1> */}
 
 			{/* Main Content: Stack all vertically */}
 			<div className='max-w-7xl mx-auto flex flex-col gap-2'>

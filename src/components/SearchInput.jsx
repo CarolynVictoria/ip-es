@@ -38,7 +38,7 @@ function SearchInput({ query, setQuery, handleSearch, handleClear }) {
 				type='text'
 				value={query}
 				onChange={(e) => setQuery(e.target.value)}
-				placeholder='Example: Climate funders in Arizona; Mental health;'
+				placeholder='Example: Ocean conservation in florida'
 				className='flex-1 border border-gray-300 px-4 py-2 rounded shadow-sm'
 			/>
 			<button

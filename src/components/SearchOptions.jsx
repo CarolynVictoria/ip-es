@@ -9,7 +9,7 @@ function SearchOptions({
 	return (
 		<>
 			{/* Shaded box for radio buttons */}
-			<div className='flex flex-col bg-gray-100 p-4 rounded-md shadow-sm'>
+			<div className='flex flex-col mt-1.5 bg-gray-200 p-4 rounded-md shadow-sm'>
 				<div className='flex flex-row gap-4'>
 					<label className='flex items-center space-x-2'>
 						<input
@@ -47,7 +47,7 @@ function SearchOptions({
 				</div>
 			</div>
 			{/* Checkbox below, visually outside the box */}
-			<div className='mt-0 pl-4 mb-0'>
+			<div className='mt-1 pl-4 pt-2 pb-2 mb-1 bg-sky-100 rounded-md'>
 				<label className='flex items-center space-x-2'>
 					<input
 						type='checkbox'
@@ -55,7 +55,10 @@ function SearchOptions({
 						onChange={(e) => setFunderNameOnly(e.target.checked)}
 						className='accent-blue-600'
 					/>
-					<span>Search funder name only</span>
+					<span>Match on funder name only</span>
+					<span className='text-xs text-gray-500'>
+						search funder names only - skip profile content search
+					</span>
 				</label>
 			</div>
 		</>
