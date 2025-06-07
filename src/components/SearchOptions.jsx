@@ -7,46 +7,47 @@ function SearchOptions({
 	setFunderNameOnly,
 }) {
 	return (
-		//	<div className='flex flex-col gap-2 mt-4 mb-6'>
-		<div className='flex flex-col gap-2 mt-4 mb-6 bg-gray-100 p-4 rounded-md shadow-sm'>
-			{/* Radios in a row */}
-			<div className='flex flex-row gap-4'>
-				<label className='flex items-center space-x-2'>
-					<input
-						type='radio'
-						name='searchType'
-						value='any'
-						checked={searchType === 'any'}
-						onChange={() => setSearchType('any')}
-						className='accent-blue-600'
-					/>
-					<span>Any terms</span>
-				</label>
-				<label className='flex items-center space-x-2'>
-					<input
-						type='radio'
-						name='searchType'
-						value='all'
-						checked={searchType === 'all'}
-						onChange={() => setSearchType('all')}
-						className='accent-blue-600'
-					/>
-					<span>All terms</span>
-				</label>
-				<label className='flex items-center space-x-2'>
-					<input
-						type='radio'
-						name='searchType'
-						value='exact'
-						checked={searchType === 'exact'}
-						onChange={() => setSearchType('exact')}
-						className='accent-blue-600'
-					/>
-					<span>Exact match</span>
-				</label>
+		<>
+			{/* Shaded box for radio buttons */}
+			<div className='flex flex-col bg-gray-100 p-4 rounded-md shadow-sm'>
+				<div className='flex flex-row gap-4'>
+					<label className='flex items-center space-x-2'>
+						<input
+							type='radio'
+							name='searchType'
+							value='all'
+							checked={searchType === 'all'}
+							onChange={() => setSearchType('all')}
+							className='accent-blue-600'
+						/>
+						<span>All terms</span>
+					</label>
+					<label className='flex items-center space-x-2'>
+						<input
+							type='radio'
+							name='searchType'
+							value='any'
+							checked={searchType === 'any'}
+							onChange={() => setSearchType('any')}
+							className='accent-blue-600'
+						/>
+						<span>Any terms</span>
+					</label>
+					<label className='flex items-center space-x-2'>
+						<input
+							type='radio'
+							name='searchType'
+							value='exact'
+							checked={searchType === 'exact'}
+							onChange={() => setSearchType('exact')}
+							className='accent-blue-600'
+						/>
+						<span>Exact match</span>
+					</label>
+				</div>
 			</div>
-			{/* Checkbox underneath */}
-			<div>
+			{/* Checkbox below, visually outside the box */}
+			<div className='mt-0 pl-4 mb-0'>
 				<label className='flex items-center space-x-2'>
 					<input
 						type='checkbox'
@@ -54,10 +55,10 @@ function SearchOptions({
 						onChange={(e) => setFunderNameOnly(e.target.checked)}
 						className='accent-blue-600'
 					/>
-					<span>Search Funder Names Only</span>
+					<span>Search funder name only</span>
 				</label>
 			</div>
-		</div>
+		</>
 	);
 }
 

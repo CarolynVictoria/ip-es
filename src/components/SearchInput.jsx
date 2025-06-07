@@ -32,13 +32,13 @@ function SearchInput({ query, setQuery, handleSearch, handleClear }) {
 	}, [query]);
 
 	return (
-		<form onSubmit={handleSearch} className='flex gap-2 mb-6'>
+		<form onSubmit={handleSearch} className='flex gap-2'>
 			<input
 				ref={inputRef}
 				type='text'
 				value={query}
 				onChange={(e) => setQuery(e.target.value)}
-				placeholder='Start typing...'
+				placeholder='Example: Climate funders in Arizona; Mental health;'
 				className='flex-1 border border-gray-300 px-4 py-2 rounded shadow-sm'
 			/>
 			<button

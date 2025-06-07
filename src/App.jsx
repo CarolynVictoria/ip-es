@@ -12,7 +12,7 @@ function App() {
 	const [results, setResults] = useState([]); // unified results
 	const [loading, setLoading] = useState(false);
 
-	const [searchType, setSearchType] = useState('any'); // "any", "all", or "exact"
+	const [searchType, setSearchType] = useState('all'); // "any", "all", or "exact"
 	const [funderNameOnly, setFunderNameOnly] = useState(false);
 
 	// temp omit certain issue areas and the lack of locations filter
@@ -22,10 +22,9 @@ function App() {
 		//'grants-celebrity-foundations',
 		'placeholder',
 	];
-	// omit issue areas not properly formatted for first prototype
+
 	function filterOmitted(results) {
 		return results.filter((r) => {
-			// Omit if BOTH issueAreas and geoLocation.states are empty/missing
 			const hasIssueAreas =
 				Array.isArray(r.issueAreas) && r.issueAreas.length > 0;
 			const states = r.geoLocation?.states || r.state || r.states || [];
@@ -33,7 +32,6 @@ function App() {
 			if (!hasIssueAreas && !hasStates) {
 				return false;
 			}
-			// Exclude if ALL issueAreas are omitted (and there is at least one issueArea)
 			if (hasIssueAreas) {
 				const allOmitted = r.issueAreas.every((tag) =>
 					OMIT_ISSUE_AREAS.includes(tag)
@@ -59,7 +57,6 @@ function App() {
 
 		console.log('Search type:', searchType);
 
-		// search options logic
 		const data = await fetchSearchResults(
 			query,
 			{
@@ -89,7 +86,7 @@ function App() {
 		setSelectedLocations(locations);
 	};
 
-	// Semantic Search
+	// Semantic Search (not currently visible in UI)
 	const [semanticQuery, setSemanticQuery] = useState('');
 	const [semanticResults, setSemanticResults] = useState([]);
 
@@ -129,9 +126,33 @@ function App() {
 		<div className='min-h-screen p-6 bg-gray-50'>
 			<h1 className='text-2xl font-bold mb-6'>Grant Finder Search</h1>
 
-			<div className='flex flex-col md:flex-row gap-6'>
-				{/* Left Sidebar */}
-				<div className='md:w-1/4 w-full max-h-screen overflow-y-auto p-2'>
+			{/* Main Content: Stack all vertically */}
+			<div className='max-w-7xl mx-auto flex flex-col gap-2'>
+				{/* Search Input */}
+				<SearchInput
+					query={query}
+					setQuery={setQuery}
+					handleSearch={handleSearch}
+					handleClear={handleClear}
+					id='keyword-search-input'
+				/>
+				{/* Search Options */}
+				{/* <label
+					htmlFor='search-options'
+					className='text-sm font-bold text-gray-700'
+				>
+					Select Search Options:
+				</label> */}
+				<SearchOptions
+					searchType={searchType}
+					setSearchType={setSearchType}
+					funderNameOnly={funderNameOnly}
+					setFunderNameOnly={setFunderNameOnly}
+				/>
+				{/* Filter Panel in its own box */}
+				<div
+					className='rounded-md bg-gray-100 p-4 mt-6 mb-4'
+				>
 					<FilterPanel
 						selectedIssueAreas={selectedIssueAreas}
 						onIssueAreaChange={handleIssueAreaChange}
@@ -139,94 +160,62 @@ function App() {
 						onLocationChange={handleLocationChange}
 					/>
 				</div>
+				{/* Results */}
+				{loading && <p>Loading...</p>}
+				{!loading &&
+					results.length > 0 &&
+					(() => {
+						const filteredResults = filterOmitted(results);
+						return (
+							<>
+								<p className='mb-4 text-gray-700'>
+									{filteredResults.length} matches found
+								</p>
+								<div className='mb-8'>
+									<h2 className='text-xl font-bold mb-2'>Search Results</h2>
+									<FunderList results={filteredResults} fetch990={true} />
+								</div>
+							</>
+						);
+					})()}
 
-				{/* Main Content */}
-				<div className='md:w-3/4 w-full'>
-					{/* Search Input */}
-					<label
-						htmlFor='search-input'
-						className='text-sm font-bold text-gray-700'
-					>
-						What are you looking for?
-					</label>
-					<SearchInput
-						query={query}
-						setQuery={setQuery}
-						handleSearch={handleSearch}
-						handleClear={handleClear}
-						id='keyword-search-input' // Give the input a unique id
-					/>
-					{/* Search Options */}
-					<label
-						htmlFor='search-options'
-						className='text-sm font-bold text-gray-700'
-					>
-						Search Options:
-					</label>
-					<SearchOptions
-						searchType={searchType}
-						setSearchType={setSearchType}
-						funderNameOnly={funderNameOnly}
-						setFunderNameOnly={setFunderNameOnly}
-					/>
+				{!loading && results.length === 0 && query && <p>No results found.</p>}
 
-					{/* Semantic Search Input
-					<label
-						htmlFor='search-input'
-						className='text-sm font-medium text-gray-700'
-					>
-						Smart Search
-					</label>
-					<SearchInput
-						query={semanticQuery}
-						setQuery={setSemanticQuery}
-						handleSearch={handleSemanticSearch}
-						handleClear={handleSemanticClear}
-						id='semantic-search-input' // Give the input a unique id
-					/> */}
-					{/* Results */}
-					{loading && <p>Loading...</p>}
-					{!loading &&
-						results.length > 0 &&
-						(() => {
-							const filteredResults = filterOmitted(results);
-							return (
-								<>
-									<p className='mb-4 text-gray-700'>
-										{filteredResults.length} matches found
-									</p>
-									<div className='mb-8'>
-										<h2 className='text-xl font-bold mb-2'>Search Results</h2>
-										<FunderList results={filteredResults} fetch990={true} />
-									</div>
-								</>
-							);
-						})()}
-
-					{!loading && results.length === 0 && query && (
-						<p>No results found.</p>
-					)}
-					{/* {!loading && semanticResults.length > 0 && (
-						<>
-							<p className='mb-4 text-gray-700'>
-								{semanticResults.length} semantic matches found
-							</p>
-
-							<div className='mb-8'>
-								<h2 className='text-xl font-bold mb-2'>
-									Semantic Search Results
-								</h2>
-								<FunderList
-									results={filterOmitted(semanticResults)}
-									fetch990={true}
-								/>
-							</div>
-						</>
-					)}
-					{!loading && semanticResults.length === 0 && semanticQuery && (
-						<p>No semantic results found.</p>
-					)} */}
-				</div>
+				{/* Uncomment to show Semantic Search */}
+				{/*
+				<label
+					htmlFor='semantic-search-input'
+					className='text-sm font-medium text-gray-700'
+				>
+					Smart Search
+				</label>
+				<SearchInput
+					query={semanticQuery}
+					setQuery={setSemanticQuery}
+					handleSearch={handleSemanticSearch}
+					handleClear={handleSemanticClear}
+					id='semantic-search-input'
+				/>
+				{!loading && semanticResults.length > 0 && (
+					<>
+						<p className='mb-4 text-gray-700'>
+							{semanticResults.length} semantic matches found
+						</p>
+						<div className='mb-8'>
+							<h2 className='text-xl font-bold mb-2'>
+								Semantic Search Results
+							</h2>
+							<FunderList
+								results={filterOmitted(semanticResults)}
+								fetch990={true}
+							/>
+						</div>
+					</>
+				)}
+				{!loading && semanticResults.length === 0 && semanticQuery && (
+					<p>No semantic results found.</p>
+				)}
+				*/}
 			</div>
 		</div>
 	);
